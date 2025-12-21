@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Portal</title>
+    <style>
+        :root {
+            --primary: #6e8efb;
+            --secondary: #a777e3;
+            --bg: #0f172a;
+            --text: #ffffff;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at top left, var(--primary), var(--bg), var(--secondary));
+            overflow: hidden;
+        }
+
+        /* Container for the sliding effect */
+        .container {
+            position: relative;
+            width: 400px;
+            height: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .form-box {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 40px;
+            transition: 0.5s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #login-form { left: 0; }
+        #signup-form { left: 100%; }
+
+        h2 {
+            color: var(--text);
+            text-align: center;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus { border-bottom: 2px solid var(--primary); }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover { transform: scale(1.02); opacity: 0.9; }
+
+        .toggle-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .toggle-text b { color: var(--primary); }
+
+        /* Success/Error Toast */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="form-box" id="login-form">
+            <h2>WELCOME BACK</h2>
+            <div class="input-group">
+                <input type="text" id="login-user" placeholder="Username" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="login-pass" placeholder="Password" required>
+            </div>
+            <button onclick="handleLogin()">LOGIN</button>
+            <p class="toggle-text" onclick="toggleForm()">New here? <b>Sign Up</b></p>
+        </div>
+
+        <div class="form-box" id="signup-form">
+            <h2>CREATE ACCOUNT</h2>
+            <div class="input-group">
+                <input type="text" id="signup-user" placeholder="Choose Username" required>
+            </div>
+            <div class="input-group">
+                <input type="email" id="signup-email" placeholder="Email Address" required>
+            </div>
+            <div class="input-group">
+                <input type="password" id="signup-pass" placeholder="Set Password" required>
+            </div>
+            <button onclick="handleSignup()">REGISTER</button>
+            <p class="toggle-text" onclick="toggleForm()">Already have an account? <b>Login</b></p>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const toast = document.getElementById('toast');
+
+        // Toggle UI logic
+        function toggleForm() {
+            if (loginForm.style.left === "-100%") {
+                loginForm.style.left = "0";
+                signupForm.style.left = "100%";
+            } else {
+                loginForm.style.left = "-100%";
+                signupForm.style.left = "0";
+            }
+        }
+
+        function showToast(message, color) {
+            toast.innerText = message;
+            toast.style.background = color;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+
+        // Logic to Register User (LocalStorage)
+        function handleSignup() {
+            const user = document.getElementById('signup-user').value;
+            const email = document.getElementById('signup-email').value;
+            const pass = document.getElementById('signup-pass').value;
+
+            if(!user || !email || !pass) return showToast("Please fill all fields", "#ff4757");
+
+            // Check if user exists
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            if(users.some(u => u.user === user)) {
+                return showToast("Username already exists!", "#ff4757");
+            }
+
+            users.push({ user, email, pass });
+            localStorage.setItem('users', JSON.stringify(users));
+            showToast("Registration Successful!", "#2ed573");
+            setTimeout(toggleForm, 1000); // Switch to login after success
+        }
+
+        // Logic to Login
+        function handleLogin() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            const foundUser = users.find(u => u.user === user && u.pass === pass);
+
+            if(foundUser) {
+                showToast("Login Successful! Welcome " + user, "#2ed573");
+            } else {
+                showToast("Invalid Credentials", "#ff4757");
+            }
+        }
+    </script>
+</body>
+</html>
