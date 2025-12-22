@@ -1,210 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Portal</title>
-    <style>
-        :root {
-            --primary: #6e8efb;
-            --secondary: #a777e3;
-            --bg: #0f172a;
-            --text: #ffffff;
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>DailyDoseofBCA</title>
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: radial-gradient(circle at top left, var(--primary), var(--bg), var(--secondary));
-            overflow: hidden;
-        }
+<link rel="icon" href="mylogo.png" type="image/png">
+<link rel="apple-touch-icon" href="mylogo.png">
 
-        /* Container for the sliding effect */
-        .container {
-            position: relative;
-            width: 400px;
-            height: 500px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
+<style>
+  :root {
+    --bg-base: #121212;
+    --text-primary: #f5f5f7;
+    --text-secondary: #86868b;
+    --accent-blue: #0a84ff;
+    --glass-panel: rgba(28, 28, 30, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.05);
+  }
 
-        .form-box {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            padding: 40px;
-            transition: 0.5s ease-in-out;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  }
 
-        #login-form { left: 0; }
-        #signup-form { left: 100%; }
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
 
-        h2 {
-            color: var(--text);
-            text-align: center;
-            margin-bottom: 30px;
-            letter-spacing: 2px;
-        }
+  /* --- AUTH MODAL --- */
+  #auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(15px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
 
-        .input-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
+  .auth-card {
+    background: var(--glass-panel);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 30px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
 
-        input {
-            width: 100%;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: none;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            outline: none;
-            transition: 0.3s;
-        }
+  .auth-input {
+    width: 100%;
+    padding: 14px;
+    margin: 8px 0;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: white;
+    outline: none;
+  }
 
-        input:focus { border-bottom: 2px solid var(--primary); }
+  .auth-btn {
+    width: 100%;
+    padding: 14px;
+    margin-top: 15px;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 25px;
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+  .auth-switch {
+    margin-top: 15px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
 
-        button:hover { transform: scale(1.02); opacity: 0.9; }
+  .logout-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(255, 59, 48, 0.2);
+    color: #ff453a;
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: none;
+  }
 
-        .toggle-text {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-            text-align: center;
-            margin-top: 20px;
-            cursor: pointer;
-        }
-
-        .toggle-text b { color: var(--primary); }
-
-        /* Success/Error Toast */
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            padding: 15px 30px;
-            border-radius: 10px;
-            color: white;
-            display: none;
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    </style>
+  /* --- EXISTING STYLES (TRUNCATED FOR BREVITY) --- */
+  .blob { position: absolute; border-radius: 50%; filter: blur(90px); z-index: -1; opacity: 0.25; animation: float 12s infinite ease-in-out alternate; }
+  .blob-1 { top: -10%; left: -10%; width: 60vw; height: 60vw; background: #3b82f6; }
+  .blob-2 { top: 20%; right: -20%; width: 50vw; height: 50vw; background: #8b5cf6; animation-delay: -3s; }
+  .blob-3 { bottom: -10%; left: 10%; width: 60vw; height: 60vw; background: #10b981; animation-delay: -6s; }
+  @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(30px, -30px) scale(1.1); } }
+  header { flex-shrink: 0; padding: 3.5rem 1.5rem 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center; z-index: 10; }
+  .brand { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #fff, #a1a1aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem; }
+  .subtitle { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4; }
+  .slider-viewport { flex: 1; width: 100%; max-width: 800px; margin: 0 auto; overflow: hidden; position: relative; }
+  .slider-track { display: flex; height: 100%; width: 300%; will-change: transform; transform: translate3d(0, 0, 0); }
+  .slide { width: 100vw; max-width: 800px; height: 100%; overflow-y: auto; padding: 20px 20px 140px; scrollbar-width: none; }
+  .card { background: var(--glass-panel); border: 1px solid var(--glass-border); border-radius: 22px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+  .subject { font-size: 1.1rem; font-weight: 700; color: #fff; }
+  .description { font-size: 0.9rem; color: #aeaeb2; line-height: 1.5; margin-bottom: 16px; }
+  .action-btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 14px; background: rgba(10, 132, 255, 0.15); color: #64d2ff; border: 1px solid rgba(10, 132, 255, 0.3); border-radius: 14px; font-weight: 600; text-decoration: none; }
+  .nav-wrapper { position: fixed; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 100; pointer-events: none; }
+  .nav-container { pointer-events: auto; position: relative; width: 340px; height: 64px; background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(35px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 32px; display: flex; align-items: center; padding: 0 5px; }
+  .nav-knob { position: absolute; left: 5px; top: 5px; bottom: 5px; width: calc((100% - 10px) / 3); background: rgba(99, 99, 102, 0.4); border-radius: 28px; z-index: 1; transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .nav-item { flex: 1; text-align: center; font-size: 0.9rem; color: #8e8e93; z-index: 2; cursor: pointer; padding: 15px 0; }
+  .nav-item.active { color: #fff; font-weight: 600; }
+</style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="form-box" id="login-form">
-            <h2>WELCOME BACK</h2>
-            <div class="input-group">
-                <input type="text" id="login-user" placeholder="Username" required>
-            </div>
-            <div class="input-group">
-                <input type="password" id="login-pass" placeholder="Password" required>
-            </div>
-            <button onclick="handleLogin()">LOGIN</button>
-            <p class="toggle-text" onclick="toggleForm()">New here? <b>Sign Up</b></p>
-        </div>
+<div id="auth-overlay">
+  <div class="auth-card">
+    <h2 id="auth-title" style="margin-bottom: 20px;">Welcome Back</h2>
+    <input type="email" id="email" class="auth-input" placeholder="Email Address">
+    <input type="password" id="password" class="auth-input" placeholder="Password">
+    <button id="auth-submit" class="auth-btn">Log In</button>
+    <p id="auth-toggle" class="auth-switch">Don't have an account? Sign Up</p>
+    <p id="auth-msg" style="font-size: 0.8rem; margin-top: 10px; color: #ff453a;"></p>
+  </div>
+</div>
 
-        <div class="form-box" id="signup-form">
-            <h2>CREATE ACCOUNT</h2>
-            <div class="input-group">
-                <input type="text" id="signup-user" placeholder="Choose Username" required>
+<button id="logout-btn" class="logout-btn" onclick="handleLogout()">Sign Out</button>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<header>
+  <div class="brand">DailyDoseofBCA</div>
+  <p class="subtitle">Get all your notes, assignments here which are handwritten</p>
+</header>
+
+<div class="slider-viewport" id="viewport">
+  <div class="slider-track" id="track">
+    <div class="slide">
+        <div class="card">
+            <div class="card-header"><span class="subject">Mobile App Dev</span></div>
+            <p class="description">Development of Android Applications.</p>
+            <a href="https://drive.google.com/file/d/1eqbwVfpe7OvzrVSnUq_1b732fFSEGnXT/view?usp=sharing" class="action-btn">Open PDF</a>
+        </div>
+        </div>
+    <div class="slide">
+        <div class="card">
+            <div class="card-header"><span class="subject">MAD Assignment</span></div>
+            <div class="accordion-content open">
+                <p class="description">Search android studio install GFG in Google.</p>
+                <a href="#" class="action-btn assign">Open Assignment</a>
             </div>
-            <div class="input-group">
-                <input type="email" id="signup-email" placeholder="Email Address" required>
-            </div>
-            <div class="input-group">
-                <input type="password" id="signup-pass" placeholder="Set Password" required>
-            </div>
-            <button onclick="handleSignup()">REGISTER</button>
-            <p class="toggle-text" onclick="toggleForm()">Already have an account? <b>Login</b></p>
         </div>
     </div>
+    <div class="slide">
+        <div class="card"><div class="card-header"><span class="subject">MAD Lab</span></div><a href="#" class="action-btn lab">View Manual</a></div>
+    </div>
+  </div>
+</div>
 
-    <div id="toast"></div>
+<div class="nav-wrapper">
+  <div class="nav-container" id="nav-container">
+    <div class="nav-knob" id="nav-knob"></div>
+    <div class="nav-item active" data-index="0">Notes</div>
+    <div class="nav-item" data-index="1">Assign</div>
+    <div class="nav-item" data-index="2">Lab Work</div>
+  </div>
+</div>
 
-    <script>
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const toast = document.getElementById('toast');
+<script>
+  // 1. SUPABASE CONFIGURATION
+  const SUPABASE_URL = 'https://nsvkbxssnjjwhsrsxirs.supabase.co'; // REPlACE THIS
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zdmtieHNzbmpqd2hzcnN4aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDA4NzksImV4cCI6MjA4MTk3Njg3OX0.S5GgEm49x6nJFmnOSsFI3Nte-mwNmVUbwTkxqa8h3yE';    // REPLACE THIS
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Toggle UI logic
-        function toggleForm() {
-            if (loginForm.style.left === "-100%") {
-                loginForm.style.left = "0";
-                signupForm.style.left = "100%";
-            } else {
-                loginForm.style.left = "-100%";
-                signupForm.style.left = "0";
-            }
-        }
+  // 2. AUTH LOGIC
+  const authOverlay = document.getElementById('auth-overlay');
+  const authTitle = document.getElementById('auth-title');
+  const authSubmit = document.getElementById('auth-submit');
+  const authToggle = document.getElementById('auth-toggle');
+  const authMsg = document.getElementById('auth-msg');
+  const logoutBtn = document.getElementById('logout-btn');
+  
+  let isLogin = true;
 
-        function showToast(message, color) {
-            toast.innerText = message;
-            toast.style.background = color;
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 3000);
-        }
+  authToggle.addEventListener('click', () => {
+    isLogin = !isLogin;
+    authTitle.innerText = isLogin ? "Welcome Back" : "Create Account";
+    authSubmit.innerText = isLogin ? "Log In" : "Sign Up";
+    authToggle.innerText = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In";
+  });
 
-        // Logic to Register User (LocalStorage)
-        function handleSignup() {
-            const user = document.getElementById('signup-user').value;
-            const email = document.getElementById('signup-email').value;
-            const pass = document.getElementById('signup-pass').value;
+  authSubmit.addEventListener('click', async () => {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    authMsg.innerText = "Processing...";
 
-            if(!user || !email || !pass) return showToast("Please fill all fields", "#ff4757");
+    if (isLogin) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) authMsg.innerText = error.message;
+    } else {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) authMsg.innerText = error.message;
+      else authMsg.style.color = "#32c46a", authMsg.innerText = "Success! Check your email to confirm.";
+    }
+  });
 
-            // Check if user exists
-            let users = JSON.parse(localStorage.getItem('users')) || [];
-            if(users.some(u => u.user === user)) {
-                return showToast("Username already exists!", "#ff4757");
-            }
+  // Check Auth State
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      authOverlay.style.display = 'none';
+      logoutBtn.style.display = 'block';
+    } else {
+      authOverlay.style.display = 'flex';
+      logoutBtn.style.display = 'none';
+    }
+  });
 
-            users.push({ user, email, pass });
-            localStorage.setItem('users', JSON.stringify(users));
-            showToast("Registration Successful!", "#2ed573");
-            setTimeout(toggleForm, 1000); // Switch to login after success
-        }
+  async function handleLogout() {
+    await supabase.auth.signOut();
+  }
 
-        // Logic to Login
-        function handleLogin() {
-            const user = document.getElementById('login-user').value;
-            const pass = document.getElementById('login-pass').value;
+  // 3. YOUR ORIGINAL SLIDER LOGIC
+  const navContainer = document.getElementById('nav-container');
+  const navKnob = document.getElementById('nav-knob');
+  const track = document.getElementById('track');
+  const viewport = document.getElementById('viewport');
+  const navItems = document.querySelectorAll('.nav-item');
 
-            let users = JSON.parse(localStorage.getItem('users')) || [];
-            const foundUser = users.find(u => u.user === user && u.pass === pass);
+  function snapToPosition(index) {
+    const navWidth = navContainer.clientWidth;
+    const knobWidth = (navWidth - 10) / 3;
+    navKnob.style.transform = `translateX(${index * knobWidth}px)`;
+    track.style.transform = `translateX(-${index * viewport.clientWidth}px)`;
+    navItems.forEach((item, i) => item.classList.toggle('active', i === index));
+  }
 
-            if(foundUser) {
-                showToast("Login Successful! Welcome " + user, "#2ed573");
-            } else {
-                showToast("Invalid Credentials", "#ff4757");
-            }
-        }
-    </script>
+  navItems.forEach((item, index) => {
+    item.addEventListener('click', () => snapToPosition(index));
+  });
+
+  window.addEventListener('resize', () => snapToPosition(0));
+</script>
 </body>
 </html>
