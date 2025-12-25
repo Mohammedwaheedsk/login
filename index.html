@@ -37,7 +37,9 @@
             color: white;
             font-size: 16px;
             outline: none;
+            transition: border-color 0.2s;
         }
+        .ios-input:focus { border-color: var(--accent-blue); }
 
         .ios-btn {
             width: 100%;
@@ -47,9 +49,14 @@
             padding: 18px;
             font-weight: 700;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .ios-btn:active { transform: scale(0.96); opacity: 0.8; }
+        .ios-btn:active:not(:disabled) { transform: scale(0.96); opacity: 0.8; }
+        .ios-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .slider-track { display: flex; height: 100%; transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1); }
         .slide { min-width: 100%; height: 100%; overflow-y: auto; padding: 0 24px 140px; }
@@ -72,54 +79,70 @@
             padding: 30px 24px env(safe-area-inset-bottom);
         }
 
-        /* OTP Code Tracking styling */
-        .otp-input {
-            letter-spacing: 0.8em;
-            text-align: center;
-            font-weight: 900;
-            font-size: 24px;
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            display: none;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading .spinner { display: block; }
+        .loading .btn-text { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- AUTHENTICATION VIEW -->
+    <!-- AUTHENTICATION VIEW (Login/Signup) -->
     <div id="view-auth" class="view active items-center justify-center p-6">
         <div class="w-full max-w-[400px] text-center">
-            <h1 id="auth-title" class="text-4xl font-black mb-2">DailyDose</h1>
-            <p class="text-zinc-500 mb-10 text-sm">Access notes, assignments & labs.</p>
+            <h1 id="auth-title" class="text-4xl font-black mb-2 tracking-tight">DailyDose</h1>
+            <p id="auth-subtitle" class="text-zinc-500 mb-10 text-sm">Access notes, assignments & labs.</p>
             
-            <div class="space-y-3">
+            <div class="space-y-3 text-left">
                 <input type="text" id="reg-name" class="ios-input hidden" placeholder="Full Name">
                 <input type="email" id="reg-email" class="ios-input" placeholder="Email Address">
                 <input type="password" id="reg-pass" class="ios-input" placeholder="Password">
             </div>
 
-            <button id="btn-auth-submit" class="ios-btn mt-6">Continue</button>
+            <button id="btn-auth-submit" class="ios-btn mt-8">
+                <span class="btn-text">Continue</span>
+                <div class="spinner"></div>
+            </button>
+            
             <p id="auth-toggle" class="mt-8 text-sm text-blue-500 font-bold cursor-pointer">Don't have an account? Sign Up</p>
-            <p id="auth-msg" class="mt-4 text-xs font-medium min-h-[1rem]"></p>
+            <p id="auth-msg" class="mt-4 text-xs font-medium min-h-[1.2rem]"></p>
         </div>
     </div>
 
-    <!-- OTP VERIFICATION VIEW -->
-    <div id="view-otp" class="view items-center justify-center p-6">
+    <!-- PROFILE PICTURE SETUP VIEW (Asked after signup) -->
+    <div id="view-setup-pfp" class="view items-center justify-center p-6">
         <div class="w-full max-w-[400px] text-center">
-            <div class="w-20 h-20 bg-blue-500/10 text-blue-500 rounded-3xl mx-auto mb-6 flex items-center justify-center">
-                <i data-lucide="mail" size="32"></i>
+            <div class="mb-10 flex flex-col items-center">
+                <h1 class="text-3xl font-black mb-2">Welcome, <span id="setup-user-name" class="text-blue-500">Student</span>!</h1>
+                <p class="text-zinc-500 text-sm">Let's set a profile picture for your workspace.</p>
             </div>
-            <h1 class="text-2xl font-bold mb-2">Verify your email</h1>
-            <p class="text-zinc-500 mb-8 text-sm px-4">We sent a verification code to <br><span id="display-otp-email" class="text-white font-bold">your email</span></p>
-            
-            <input type="number" id="otp-code" class="ios-input otp-input mb-6" placeholder="000000" oninput="if(this.value.length > 6) this.value = this.value.slice(0,6)">
-            
-            <button id="btn-otp-verify" class="ios-btn mb-6">Verify & Login</button>
-            
-            <div class="flex flex-col gap-4">
-                <button id="btn-otp-resend" class="text-blue-500 font-bold text-sm">Resend code</button>
-                <button onclick="setView('auth')" class="text-zinc-500 text-sm font-medium">Use a different email</button>
+
+            <div class="relative inline-block mb-10">
+                <img id="setup-pfp-preview" src="https://ui-avatars.com/api/?name=User&background=0a84ff&color=fff" class="w-32 h-32 rounded-full object-cover border-4 border-white/10 bg-zinc-800 shadow-2xl">
+                <input type="file" id="setup-pfp-input" class="hidden" accept="image/*">
+                <button onclick="document.getElementById('setup-pfp-input').click()" class="absolute -bottom-1 -right-1 bg-blue-600 p-3 rounded-full border-4 border-black active:scale-90 transition-transform">
+                    <i data-lucide="camera" size="20"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <button id="btn-setup-finish" class="ios-btn">
+                    <span class="btn-text">Finish Setup</span>
+                    <div class="spinner"></div>
+                </button>
+                <button id="btn-setup-skip" class="w-full py-4 text-zinc-500 font-bold text-sm">Skip for now</button>
             </div>
             
-            <p id="otp-msg" class="mt-6 text-xs font-medium"></p>
+            <p id="setup-msg" class="mt-6 text-xs font-medium text-zinc-500"></p>
         </div>
     </div>
 
@@ -185,9 +208,9 @@
                     <label class="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3 block">Display Identity</label>
                     <div class="flex gap-3">
                         <input type="text" id="new-name" class="ios-input flex-1" placeholder="New name">
-                        <button id="btn-update-name" class="bg-white text-black px-6 rounded-2xl font-bold text-sm">Update</button>
+                        <button id="btn-update-name" class="bg-white text-black px-6 rounded-2xl font-bold text-sm disabled:opacity-30">Update</button>
                     </div>
-                    <p id="name-count-status" class="text-[11px] mt-3 text-zinc-500 font-medium">3 changes remaining</p>
+                    <p id="name-count-status" class="text-[11px] mt-3 text-zinc-500 font-medium">5 changes remaining</p>
                 </div>
                 <div class="pt-6 border-t border-white/5">
                     <button onclick="handleSignOut()" class="w-full py-5 bg-red-500/10 text-red-500 rounded-3xl font-bold text-sm">Sign Out</button>
@@ -207,12 +230,12 @@
 
     const views = {
         auth: document.getElementById('view-auth'),
-        otp: document.getElementById('view-otp'),
+        setup: document.getElementById('view-setup-pfp'),
         home: document.getElementById('view-home')
     };
 
-    let userEmail = "";
     let isLoginMode = true;
+    let selectedSetupFile = null;
 
     function setView(target) {
         Object.values(views).forEach(v => v.classList.remove('active'));
@@ -223,121 +246,163 @@
     document.getElementById('auth-toggle').onclick = () => {
         isLoginMode = !isLoginMode;
         document.getElementById('auth-title').innerText = isLoginMode ? "Welcome Back" : "Create Account";
+        document.getElementById('auth-subtitle').innerText = isLoginMode ? "Access notes, assignments & labs." : "Join the DailyDose student community.";
         document.getElementById('auth-toggle').innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In";
         document.getElementById('reg-name').classList.toggle('hidden', isLoginMode);
     };
 
-    // SUBMIT SIGNUP/LOGIN
+    // SUBMIT AUTH
     document.getElementById('btn-auth-submit').onclick = async () => {
+        const btn = document.getElementById('btn-auth-submit');
         const email = document.getElementById('reg-email').value.trim();
         const password = document.getElementById('reg-pass').value;
-        const name = document.getElementById('reg-name').value;
+        const name = document.getElementById('reg-name').value.trim();
         const msg = document.getElementById('auth-msg');
 
-        if(!email || !password) return alert("Fill required fields");
-        userEmail = email;
-        msg.innerText = "Processing...";
-        msg.style.color = "#888";
+        if(!email || !password || (!isLoginMode && !name)) {
+            msg.innerText = "Please fill all fields.";
+            msg.style.color = "#ff453a";
+            return;
+        }
+
+        btn.classList.add('loading');
+        btn.disabled = true;
+        msg.innerText = "";
 
         if (isLoginMode) {
             const { error } = await _supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 msg.innerText = error.message;
                 msg.style.color = "#ff453a";
+                btn.classList.remove('loading');
+                btn.disabled = false;
             }
         } else {
             const { data, error } = await _supabase.auth.signUp({
                 email, password,
-                options: { data: { full_name: name || "Student", name_changes_left: 3, pfp_set: false } }
+                options: { 
+                    data: { 
+                        full_name: name, 
+                        profile_changes_left: 5,
+                        avatar_url: null 
+                    } 
+                }
             });
             
             if (error) {
                 msg.innerText = error.message;
                 msg.style.color = "#ff453a";
+                btn.classList.remove('loading');
+                btn.disabled = false;
             } else {
-                if (data.user && !data.session) {
-                    document.getElementById('display-otp-email').innerText = email;
-                    setView('otp');
-                } else if (data.session) {
-                    setView('home');
+                if (!data.session) {
+                    msg.innerText = "Check your email to verify your account!";
+                    msg.style.color = "#34c759";
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
                 }
             }
         }
     };
 
-    // OTP VERIFY
-    document.getElementById('btn-otp-verify').onclick = async () => {
-        const code = document.getElementById('otp-code').value.trim();
-        const msg = document.getElementById('otp-msg');
-
-        if (code.length < 6) return alert("Enter 6-digit code");
-        msg.innerText = "Verifying code...";
-        msg.style.color = "#888";
-
-        const { error } = await _supabase.auth.verifyOtp({
-            email: userEmail,
-            token: code,
-            type: 'signup'
-        });
-
-        if (error) {
-            msg.innerText = error.message;
-            msg.style.color = "#ff453a";
-        } else {
-            msg.innerText = "Verified! Welcome.";
-            msg.style.color = "#32c46a";
+    // SETUP PFP LOGIC
+    document.getElementById('setup-pfp-input').onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            selectedSetupFile = file;
+            const reader = new FileReader();
+            reader.onload = (ev) => document.getElementById('setup-pfp-preview').src = ev.target.result;
+            reader.readAsDataURL(file);
         }
     };
 
-    // RESEND OTP
-    document.getElementById('btn-otp-resend').onclick = async () => {
-        const btn = document.getElementById('btn-otp-resend');
+    document.getElementById('btn-setup-finish').onclick = async () => {
+        if (!selectedSetupFile) return alert("Please select a photo or skip.");
+        
+        const btn = document.getElementById('btn-setup-finish');
+        btn.classList.add('loading');
         btn.disabled = true;
-        btn.innerText = "Sending...";
-        
-        const { error } = await _supabase.auth.resend({
-            type: 'signup',
-            email: userEmail
-        });
 
-        if (error) {
-            alert("Rate limit exceeded. Try again in a minute.");
-        } else {
-            alert("New code sent to " + userEmail);
-        }
+        const { data: { user } } = await _supabase.auth.getUser();
+        const filePath = `avatars/${user.id}-${Date.now()}`;
         
-        setTimeout(() => {
+        const { error: upErr } = await _supabase.storage.from('avatars').upload(filePath, selectedSetupFile);
+        if (upErr) {
+            alert(upErr.message);
+            btn.classList.remove('loading');
             btn.disabled = false;
-            btn.innerText = "Resend code";
-        }, 10000);
+            return;
+        }
+
+        const { data: { publicUrl } } = _supabase.storage.from('avatars').getPublicUrl(filePath);
+        await _supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
+        
+        setView('home');
+        location.reload();
+    };
+
+    document.getElementById('btn-setup-skip').onclick = () => {
+        setView('home');
     };
 
     // SESSION OBSERVER
-    _supabase.auth.onAuthStateChange((event, session) => {
+    _supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
-            setView('home');
-            const meta = session.user.user_metadata;
-            const name = meta.full_name || "Student";
-            const pfp = meta.avatar_url || `https://ui-avatars.com/api/?name=${name}&background=0a84ff&color=fff`;
+            const user = session.user;
+            const meta = user.user_metadata || {};
+            // Priority: Metadata full_name > user's display name > default "Student"
+            const displayName = meta.full_name || user.user_metadata?.full_name || "Student";
+            
+            // Welcome screen name update
+            const setupNameLabel = document.getElementById('setup-user-name');
+            if (setupNameLabel) setupNameLabel.innerText = displayName;
 
-            document.getElementById('user-display-name').innerText = name;
-            document.getElementById('profile-name-label').innerText = name;
-            document.getElementById('profile-email-label').innerText = session.user.email;
+            // Redirect logic: If no PFP and not already on Home or Setup
+            if (!meta.avatar_url && !views.home.classList.contains('active') && !views.setup.classList.contains('active')) {
+                document.getElementById('setup-pfp-preview').src = `https://ui-avatars.com/api/?name=${displayName}&background=0a84ff&color=fff`;
+                setView('setup');
+                return;
+            }
+
+            setView('home');
+            const pfp = meta.avatar_url || `https://ui-avatars.com/api/?name=${displayName}&background=0a84ff&color=fff`;
+            const changesLeft = meta.profile_changes_left ?? 5;
+
+            // Update Homepage Header with the actual user name
+            document.getElementById('user-display-name').innerText = displayName;
+            
+            // Update Profile Modal Labels
+            document.getElementById('profile-name-label').innerText = displayName;
+            document.getElementById('profile-email-label').innerText = user.email;
+            
             document.getElementById('header-avatar').src = pfp;
             document.getElementById('modal-avatar').src = pfp;
-
-            if (meta.pfp_set) document.getElementById('pfp-trigger').style.display = 'none';
-            document.getElementById('name-count-status').innerText = `${meta.name_changes_left ?? 3} changes remaining`;
+            document.getElementById('name-count-status').innerText = `${changesLeft} changes remaining`;
+            
+            const updateBtn = document.getElementById('btn-update-name');
+            const pfpBtn = document.getElementById('pfp-trigger');
+            if (changesLeft <= 0) {
+                updateBtn.disabled = true;
+                pfpBtn.style.display = 'none';
+                document.getElementById('new-name').disabled = true;
+                document.getElementById('new-name').placeholder = "No changes left";
+            }
             snap(0);
-        } else if (!views.otp.classList.contains('active')) {
+        } else {
             setView('auth');
         }
     });
 
-    // NAVIGATION
+    // UI HELPERS
     function snap(idx) {
         document.getElementById('track').style.transform = `translateX(-${idx * 100}%)`;
         document.getElementById('nav-indicator').style.transform = `translateX(${idx * 100}%)`;
+        
+        const icons = document.querySelectorAll('nav i');
+        icons.forEach((icon, i) => {
+            icon.closest('div').classList.toggle('text-white', i === idx);
+            icon.closest('div').classList.toggle('text-zinc-500', i !== idx);
+        });
     }
 
     function toggleProfile() {
@@ -355,29 +420,44 @@
     document.getElementById('pfp-upload').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        
         const { data: { user } } = await _supabase.auth.getUser();
+        let left = user.user_metadata.profile_changes_left ?? 5;
+        if (left <= 0) return alert("No changes remaining");
+
+        document.getElementById('name-count-status').innerText = "Updating...";
+        
         const filePath = `avatars/${user.id}-${Date.now()}`;
-        await _supabase.storage.from('avatars').upload(filePath, file);
+        const { error: upErr } = await _supabase.storage.from('avatars').upload(filePath, file);
+        if(upErr) return alert(upErr.message);
+
         const { data: { publicUrl } } = _supabase.storage.from('avatars').getPublicUrl(filePath);
-        await _supabase.auth.updateUser({ data: { avatar_url: publicUrl, pfp_set: true } });
+        await _supabase.auth.updateUser({ 
+            data: { 
+                avatar_url: publicUrl, 
+                profile_changes_left: left - 1 
+            } 
+        });
         location.reload();
     };
 
     document.getElementById('btn-update-name').onclick = async () => {
         const newName = document.getElementById('new-name').value.trim();
         const { data: { user } } = await _supabase.auth.getUser();
-        let left = user.user_metadata.name_changes_left ?? 3;
-        if (left <= 0 || !newName) return;
-        await _supabase.auth.updateUser({ data: { full_name: newName, name_changes_left: left - 1 } });
+        let left = user.user_metadata.profile_changes_left ?? 5;
+        
+        if (left <= 0) return alert("No changes remaining");
+        if (!newName) return alert("Enter a name");
+
+        document.getElementById('btn-update-name').innerText = "...";
+        await _supabase.auth.updateUser({ 
+            data: { 
+                full_name: newName, 
+                profile_changes_left: left - 1 
+            } 
+        });
         location.reload();
     };
 </script>
 </body>
 </html>
-
-
-**Troubleshooting Tips:**
-1.  **Check Spam:** Supabase emails often go to the "Junk" folder.
-2.  **Rate Limiting:** Supabase only allows a few emails per hour on the free tier. If you've been testing a lot, you might have to wait 15–30 minutes.
-3.  **Correct Template:** Double-check that you are editing the **"Confirm Signup"** template and not "Magic Link" or "Change Email."
-4.  **Try another Email:** Use a service like `temp-mail.org` or a different Gmail account to see if it's a specific email blocking the sender.
