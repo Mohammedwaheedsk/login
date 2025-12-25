@@ -12,8 +12,10 @@
     <style>
         :root {
             --bg-base: #000000;
-            --accent-blue: #0a84ff;
+            --accent-blue: #007aff;
+            --glass-bg: rgba(255, 255, 255, 0.04);
             --glass-border: rgba(255, 255, 255, 0.1);
+            --liquid-blur: blur(45px);
         }
 
         body {
@@ -23,6 +25,27 @@
             width: 100vw;
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Background Liquid Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* Glass Panels */
+        .liquid-glass {
+            background: var(--glass-bg);
+            backdrop-filter: var(--liquid-blur);
+            -webkit-backdrop-filter: var(--liquid-blur);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
         .view { position: fixed; inset: 0; display: none; flex-direction: column; z-index: 10; background: black; }
@@ -30,56 +53,71 @@
 
         .ios-input {
             width: 100%;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.06);
             border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 16px;
+            border-radius: 20px;
+            padding: 18px;
             color: white;
             font-size: 16px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1);
         }
-        .ios-input:focus { border-color: var(--accent-blue); }
+        .ios-input:focus { border-color: var(--accent-blue); background: rgba(255, 255, 255, 0.1); }
 
         .ios-btn {
             width: 100%;
             background: var(--accent-blue);
             color: white;
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 18px;
             font-weight: 700;
-            transition: all 0.2s;
+            transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1);
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 10px;
         }
+        .ios-btn:active { transform: scale(0.96); opacity: 0.8; }
 
-        .ios-btn:active:not(:disabled) { transform: scale(0.96); opacity: 0.8; }
-        .ios-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .slider-track { display: flex; height: 100%; transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1); }
-        .slide { min-width: 100%; height: 100%; overflow-y: auto; padding: 0 24px 140px; }
-
-        #profile-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.95);
-            backdrop-filter: blur(25px);
-            display: none;
-            justify-content: center;
-            align-items: flex-end;
-            z-index: 3000;
-        }
-
-        .modal-content {
+        /* Slider Engine */
+        .slider-viewport { 
+            position: relative;
+            overflow: hidden;
             width: 100%;
-            background: #1c1c1e;
-            border-radius: 32px 32px 0 0;
-            padding: 30px 24px env(safe-area-inset-bottom);
+            touch-action: pan-y;
+        }
+        .slider-track {
+            display: flex;
+            width: 300%; /* 3 slides */
+            height: 100%;
+            will-change: transform;
+        }
+        .slide {
+            width: 100vw;
+            padding: 0 24px;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+        .slide-content { pointer-events: auto; }
+
+        /* Lift-Up Feel */
+        .card-lift {
+            transition: all 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            transform-origin: center;
+        }
+        .card-lift:active {
+            transform: scale(1.04) translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+            filter: brightness(1.15);
         }
 
-        /* Loading Spinner */
+        /* Nav Indicator */
+        #nav-indicator {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
         .spinner {
             width: 20px;
             height: 20px;
@@ -96,126 +134,156 @@
 </head>
 <body>
 
-    <!-- AUTHENTICATION VIEW (Login/Signup) -->
-    <div id="view-auth" class="view active items-center justify-center p-6">
-        <div class="w-full max-w-[400px] text-center">
-            <h1 id="auth-title" class="text-4xl font-black mb-2 tracking-tight">DailyDose</h1>
-            <p id="auth-subtitle" class="text-zinc-500 mb-10 text-sm">Access notes, assignments & labs.</p>
+    <!-- Liquid Background Elements -->
+    <div class="orb w-[300px] h-[300px] bg-blue-600 top-[-100px] right-[-50px]"></div>
+    <div class="orb w-[250px] h-[250px] bg-purple-600 bottom-[-50px] left-[-50px]"></div>
+
+    <!-- AUTHENTICATION VIEW -->
+    <div id="view-auth" class="view active items-center justify-center p-8">
+        <div class="w-full max-w-[400px] relative z-20">
+            <div class="text-center mb-10">
+                <h1 id="auth-title" class="text-5xl font-black tracking-tighter mb-2">DailyDoseofBCA</h1>
+                <p id="auth-subtitle" class="text-zinc-500 font-medium">BCA class resources all at one place.</p>
+            </div>
             
-            <div class="space-y-3 text-left">
-                <input type="text" id="reg-name" class="ios-input hidden" placeholder="Full Name">
+            <div class="space-y-4">
+                <input type="text" id="reg-name" class="ios-input hidden" placeholder="What should we call you?">
                 <input type="email" id="reg-email" class="ios-input" placeholder="Email Address">
                 <input type="password" id="reg-pass" class="ios-input" placeholder="Password">
             </div>
 
-            <button id="btn-auth-submit" class="ios-btn mt-8">
+            <button id="btn-auth-submit" class="ios-btn mt-8 shadow-2xl shadow-blue-500/20">
                 <span class="btn-text">Continue</span>
                 <div class="spinner"></div>
             </button>
             
-            <p id="auth-toggle" class="mt-8 text-sm text-blue-500 font-bold cursor-pointer">Don't have an account? Sign Up</p>
-            <p id="auth-msg" class="mt-4 text-xs font-medium min-h-[1.2rem]"></p>
+            <p id="auth-toggle" class="mt-8 text-sm text-center text-zinc-500 font-bold cursor-pointer">New here? <span class="text-blue-500">Sign Up</span></p>
+            <p id="auth-msg" class="mt-4 text-xs font-semibold text-center text-red-400 min-h-[1rem]"></p>
         </div>
     </div>
 
-    <!-- PROFILE PICTURE SETUP VIEW (Asked after signup) -->
-    <div id="view-setup-pfp" class="view items-center justify-center p-6">
-        <div class="w-full max-w-[400px] text-center">
-            <div class="mb-10 flex flex-col items-center">
-                <h1 class="text-3xl font-black mb-2">Welcome, <span id="setup-user-name" class="text-blue-500">Student</span>!</h1>
-                <p class="text-zinc-500 text-sm">Let's set a profile picture for your workspace.</p>
-            </div>
+    <!-- SETUP PROFILE PICTURE VIEW -->
+    <div id="view-setup-pfp" class="view items-center justify-center p-8">
+        <div class="w-full max-w-[400px] text-center relative z-20">
+            <h1 class="text-3xl font-black mb-2">Hello, <span id="setup-name-display" class="text-blue-500">Student</span>!</h1>
+            <p class="text-zinc-500 mb-10">Add a profile photo to complete your workspace.</p>
 
-            <div class="relative inline-block mb-10">
-                <img id="setup-pfp-preview" src="https://ui-avatars.com/api/?name=User&background=0a84ff&color=fff" class="w-32 h-32 rounded-full object-cover border-4 border-white/10 bg-zinc-800 shadow-2xl">
+            <div class="relative inline-block mb-12">
+                <div class="w-32 h-32 rounded-[40px] liquid-glass overflow-hidden p-1">
+                    <img id="setup-pfp-preview" src="https://ui-avatars.com/api/?name=User&background=0a84ff&color=fff" class="w-full h-full object-cover rounded-[36px]">
+                </div>
                 <input type="file" id="setup-pfp-input" class="hidden" accept="image/*">
-                <button onclick="document.getElementById('setup-pfp-input').click()" class="absolute -bottom-1 -right-1 bg-blue-600 p-3 rounded-full border-4 border-black active:scale-90 transition-transform">
+                <button onclick="document.getElementById('setup-pfp-input').click()" class="absolute -bottom-2 -right-2 bg-blue-600 p-4 rounded-3xl border-4 border-black active:scale-90 transition-transform">
                     <i data-lucide="camera" size="20"></i>
                 </button>
             </div>
 
-            <div class="space-y-3">
-                <button id="btn-setup-finish" class="ios-btn">
-                    <span class="btn-text">Finish Setup</span>
-                    <div class="spinner"></div>
-                </button>
+            <div class="space-y-4">
+                <button id="btn-setup-finish" class="ios-btn">Finish Setup</button>
                 <button id="btn-setup-skip" class="w-full py-4 text-zinc-500 font-bold text-sm">Skip for now</button>
             </div>
-            
-            <p id="setup-msg" class="mt-6 text-xs font-medium text-zinc-500"></p>
+            <p id="setup-msg" class="mt-4 text-xs font-medium text-zinc-500"></p>
         </div>
     </div>
 
-    <!-- HOME VIEW -->
+    <!-- MAIN HOME VIEW -->
     <div id="view-home" class="view">
-        <header class="pt-16 px-6 pb-4 flex justify-between items-center">
+        <header class="pt-20 px-8 pb-4 flex justify-between items-end relative z-20">
             <div>
-                <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">DailyDose Workspace</h2>
-                <h1 id="user-display-name" class="text-3xl font-bold tracking-tight">Student</h1>
+                <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Your Workspace</h2>
+                <h1 id="user-display-name" class="text-4xl font-black tracking-tighter">Student</h1>
             </div>
             <button onclick="toggleProfile()" class="active:scale-90 transition-transform">
-                <img id="header-avatar" src="" class="w-12 h-12 rounded-full border-2 border-white/10 object-cover bg-zinc-800">
+                <img id="header-avatar" src="" class="w-14 h-14 rounded-2xl liquid-glass object-cover bg-zinc-900">
             </button>
         </header>
 
-        <div class="slider-viewport flex-1 overflow-hidden relative" id="viewport">
-            <div class="slider-track" id="track">
+        <!-- Touch Interactive Slider -->
+        <div class="slider-viewport flex-1 mt-6" id="slider-viewport">
+            <div class="slider-track" id="slider-track">
+                
+                <!-- Slide 1: Notes -->
                 <div class="slide">
-                    <h2 class="text-xl font-bold mb-6 text-zinc-400">Notes</h2>
-                    <div class="bg-zinc-900/50 p-6 rounded-[28px] border border-white/5 mb-4">
-                        <h3 class="text-lg font-bold mb-1">Android Development</h3>
-                        <p class="text-sm text-zinc-500 mb-6">Complete guide to Fragments & Lifecycle.</p>
-                        <button onclick="window.open('https://drive.google.com')" class="w-full py-4 bg-zinc-100 text-black rounded-2xl font-bold text-sm">Open Drive PDF</button>
+                    <div class="slide-content">
+                        <h3 class="text-xs font-black text-zinc-600 uppercase tracking-[0.2em] mb-6">Learning Materials</h3>
+                        <div class="liquid-glass p-8 card-lift mb-6 rounded-[40px] border-white/5">
+                            <div class="w-14 h-14 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-8">
+                                <i data-lucide="book-open" size="28"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold mb-2">Android Labs</h4>
+                            <p class="text-zinc-500 text-sm leading-relaxed mb-10">Download the complete semester labs for Practical Exams.</p>
+                            <button class="w-full py-4 bg-white text-black rounded-2xl font-black text-sm">View PDF</button>
+                        </div>
                     </div>
                 </div>
-                <div class="slide"><h2 class="text-xl font-bold mb-6 text-zinc-400">Assignments</h2></div>
-                <div class="slide"><h2 class="text-xl font-bold mb-6 text-zinc-400">Lab Manuals</h2></div>
+
+                <!-- Slide 2: Assignments -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h3 class="text-xs font-black text-zinc-600 uppercase tracking-[0.2em] mb-6">Upcoming Tasks</h3>
+                        <div class="liquid-glass p-8 card-lift mb-6 rounded-[40px] border-purple-500/20">
+                            <div class="w-14 h-14 bg-purple-500/10 text-purple-500 rounded-2xl flex items-center justify-center mb-8">
+                                <i data-lucide="clipboard-list" size="28"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold mb-2">Web Projects</h4>
+                            <p class="text-zinc-500 text-sm leading-relaxed mb-10">React.js state management assignment due on Friday.</p>
+                            <button class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black text-sm border border-white/10">Upload Now</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Resources -->
+                <div class="slide">
+                    <div class="slide-content">
+                        <h3 class="text-xs font-black text-zinc-600 uppercase tracking-[0.2em] mb-6">Quick Tools</h3>
+                        <div class="liquid-glass p-8 card-lift mb-6 rounded-[40px] border-green-500/20">
+                            <div class="w-14 h-14 bg-green-500/10 text-green-500 rounded-2xl flex items-center justify-center mb-8">
+                                <i data-lucide="flask-conical" size="28"></i>
+                            </div>
+                            <h4 class="text-2xl font-bold mb-2">Lab Manuals</h4>
+                            <p class="text-zinc-500 text-sm leading-relaxed mb-10">Official BCA lab manuals for 2024 revised syllabus.</p>
+                            <button class="w-full py-4 bg-zinc-800 text-white rounded-2xl font-black text-sm border border-white/10">Explore</button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
-        <div class="fixed bottom-10 left-0 w-full flex justify-center px-6 pointer-events-none">
-            <nav class="w-full max-w-[400px] h-20 bg-zinc-900/80 backdrop-blur-2xl border border-white/10 rounded-[40px] flex items-center p-2 pointer-events-auto">
-                <div id="nav-indicator" class="absolute h-16 w-[calc((100%-16px)/3)] bg-white/5 border border-white/10 rounded-[32px] transition-transform duration-500 cubic-bezier(0.2, 1, 0.3, 1)"></div>
-                <div class="flex-1 flex flex-col items-center justify-center z-10 text-white" onclick="snap(0)">
-                    <i data-lucide="book-open"></i>
+        <!-- Glass Bottom Nav -->
+        <div class="fixed bottom-12 left-0 w-full px-8 z-30 pointer-events-none">
+            <nav class="liquid-glass w-full max-w-[400px] mx-auto h-20 rounded-[35px] flex items-center p-2 pointer-events-auto relative">
+                <div id="nav-indicator" class="absolute h-16 w-[calc((100%-16px)/3)] rounded-[28px]"></div>
+                <div class="flex-1 flex justify-center z-10 cursor-pointer" onclick="jumpToSlide(0)">
+                    <i data-lucide="book-open" size="20"></i>
                 </div>
-                <div class="flex-1 flex flex-col items-center justify-center z-10 text-zinc-500" onclick="snap(1)">
-                    <i data-lucide="edit-3"></i>
+                <div class="flex-1 flex justify-center z-10 cursor-pointer opacity-40" onclick="jumpToSlide(1)">
+                    <i data-lucide="edit-3" size="20"></i>
                 </div>
-                <div class="flex-1 flex flex-col items-center justify-center z-10 text-zinc-500" onclick="snap(2)">
-                    <i data-lucide="flask-conical"></i>
+                <div class="flex-1 flex justify-center z-10 cursor-pointer opacity-40" onclick="jumpToSlide(2)">
+                    <i data-lucide="archive" size="20"></i>
                 </div>
             </nav>
         </div>
     </div>
 
     <!-- PROFILE MODAL -->
-    <div id="profile-modal" onclick="toggleProfile()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="flex flex-col items-center mb-10">
-                <div class="relative">
-                    <img id="modal-avatar" src="" class="w-24 h-24 rounded-full object-cover border-4 border-blue-500 bg-zinc-800">
-                    <input type="file" id="pfp-upload" class="hidden" accept="image/*">
-                    <button id="pfp-trigger" class="absolute -bottom-2 -right-2 bg-blue-600 p-3 rounded-full border-4 border-[#1c1c1e]">
-                        <i data-lucide="camera" size="18"></i>
-                    </button>
-                </div>
-                <h3 id="profile-name-label" class="text-2xl font-bold mt-4">Name</h3>
-                <p id="profile-email-label" class="text-zinc-500 text-sm">email@student.com</p>
+    <div id="profile-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-end justify-center" onclick="toggleProfile()">
+        <div class="w-full liquid-glass rounded-t-[50px] p-10 animate-slide-up" onclick="event.stopPropagation()">
+            <div class="w-12 h-1 bg-white/10 rounded-full mx-auto mb-10"></div>
+            
+            <div class="flex flex-col items-center mb-12">
+                <img id="modal-avatar" src="" class="w-24 h-24 rounded-[32px] object-cover border-2 border-blue-500/30 mb-4 bg-zinc-900">
+                <h3 id="profile-name-label" class="text-2xl font-bold">User Name</h3>
+                <p id="profile-email-label" class="text-zinc-500 text-sm font-medium">user@email.com</p>
             </div>
-            <div class="space-y-8">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3 block">Display Identity</label>
-                    <div class="flex gap-3">
-                        <input type="text" id="new-name" class="ios-input flex-1" placeholder="New name">
-                        <button id="btn-update-name" class="bg-white text-black px-6 rounded-2xl font-bold text-sm disabled:opacity-30">Update</button>
-                    </div>
-                    <p id="name-count-status" class="text-[11px] mt-3 text-zinc-500 font-medium">5 changes remaining</p>
+
+            <div class="space-y-4">
+                <div class="flex gap-3">
+                    <input type="text" id="new-name" class="ios-input flex-1" placeholder="Update display name">
+                    <button id="btn-update-name" class="bg-white text-black px-8 rounded-2xl font-bold">Save</button>
                 </div>
-                <div class="pt-6 border-t border-white/5">
-                    <button onclick="handleSignOut()" class="w-full py-5 bg-red-500/10 text-red-500 rounded-3xl font-bold text-sm">Sign Out</button>
-                    <button onclick="toggleProfile()" class="w-full py-4 text-zinc-600 font-bold text-sm mt-2">Dismiss</button>
-                </div>
+                <button onclick="handleSignOut()" class="w-full py-5 bg-red-500/10 text-red-500 rounded-3xl font-bold">Sign Out</button>
             </div>
         </div>
     </div>
@@ -223,7 +291,7 @@
 <script>
     lucide.createIcons();
 
-    // Supabase Initialization
+    // Supabase Setup
     const SB_URL = 'https://nsvkbxssnjjwhsrsxirs.supabase.co'; 
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zdmtieHNzbmpqd2hzcnN4aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDA4NzksImV4cCI6MjA4MTk3Njg3OX0.S5GgEm49x6nJFmnOSsFI3Nte-mwNmVUbwTkxqa8h3yE';
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
@@ -235,23 +303,71 @@
     };
 
     let isLoginMode = true;
-    let selectedSetupFile = null;
+    let currentSlide = 0;
+    const totalSlides = 3;
 
-    function setView(target) {
-        Object.values(views).forEach(v => v.classList.remove('active'));
-        views[target].classList.add('active');
+    // --- LIQUID SWIPE ENGINE ---
+    const track = document.getElementById('slider-track');
+    const viewport = document.getElementById('slider-viewport');
+    let startX = 0;
+    let currentTranslate = 0;
+    let prevTranslate = 0;
+    let isDragging = false;
+    let animationID = 0;
+
+    viewport.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startX = e.touches[0].clientX;
+        track.style.transition = 'none';
+        animationID = requestAnimationFrame(animateSwipe);
+    });
+
+    viewport.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const currentX = e.touches[0].clientX;
+        const diff = currentX - startX;
+        currentTranslate = prevTranslate + diff;
+    });
+
+    viewport.addEventListener('touchend', () => {
+        isDragging = false;
+        cancelAnimationFrame(animationID);
+        
+        const movedBy = currentTranslate - prevTranslate;
+        if (movedBy < -100 && currentSlide < totalSlides - 1) currentSlide++;
+        else if (movedBy > 100 && currentSlide > 0) currentSlide--;
+
+        jumpToSlide(currentSlide);
+    });
+
+    function animateSwipe() {
+        track.style.transform = `translateX(${currentTranslate}px)`;
+        if (isDragging) requestAnimationFrame(animateSwipe);
     }
 
-    // AUTH SWITCH
+    function jumpToSlide(index) {
+        currentSlide = index;
+        const width = window.innerWidth;
+        currentTranslate = index * -width;
+        prevTranslate = currentTranslate;
+        
+        track.style.transition = 'transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+        track.style.transform = `translateX(${currentTranslate}px)`;
+        
+        // UI Navigation Update
+        const navIcons = document.querySelectorAll('nav div:not(#nav-indicator)');
+        navIcons.forEach((el, i) => el.style.opacity = (i === index ? '1' : '0.4'));
+        document.getElementById('nav-indicator').style.transform = `translateX(${index * 100}%)`;
+    }
+
+    // --- AUTHENTICATION ---
     document.getElementById('auth-toggle').onclick = () => {
         isLoginMode = !isLoginMode;
-        document.getElementById('auth-title').innerText = isLoginMode ? "Welcome Back" : "Create Account";
-        document.getElementById('auth-subtitle').innerText = isLoginMode ? "Access notes, assignments & labs." : "Join the DailyDose student community.";
-        document.getElementById('auth-toggle').innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In";
+        document.getElementById('auth-title').innerText = isLoginMode ? "DailyDose" : "Join Us";
+        document.getElementById('auth-toggle').innerHTML = isLoginMode ? 'New here? <span class="text-blue-500">Sign Up</span>' : 'Already have an account? <span class="text-blue-500">Log In</span>';
         document.getElementById('reg-name').classList.toggle('hidden', isLoginMode);
     };
 
-    // SUBMIT AUTH
     document.getElementById('btn-auth-submit').onclick = async () => {
         const btn = document.getElementById('btn-auth-submit');
         const email = document.getElementById('reg-email').value.trim();
@@ -259,57 +375,31 @@
         const name = document.getElementById('reg-name').value.trim();
         const msg = document.getElementById('auth-msg');
 
-        if(!email || !password || (!isLoginMode && !name)) {
+        if (!email || !password || (!isLoginMode && !name)) {
             msg.innerText = "Please fill all fields.";
-            msg.style.color = "#ff453a";
             return;
         }
 
         btn.classList.add('loading');
-        btn.disabled = true;
         msg.innerText = "";
 
         if (isLoginMode) {
             const { error } = await _supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                msg.innerText = error.message;
-                msg.style.color = "#ff453a";
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            }
+            if (error) { msg.innerText = error.message; btn.classList.remove('loading'); }
         } else {
             const { data, error } = await _supabase.auth.signUp({
                 email, password,
-                options: { 
-                    data: { 
-                        full_name: name, 
-                        profile_changes_left: 5,
-                        avatar_url: null 
-                    } 
-                }
+                options: { data: { full_name: name, profile_changes_left: 5 } }
             });
-            
-            if (error) {
-                msg.innerText = error.message;
-                msg.style.color = "#ff453a";
-                btn.classList.remove('loading');
-                btn.disabled = false;
-            } else {
-                if (!data.session) {
-                    msg.innerText = "Check your email to verify your account!";
-                    msg.style.color = "#34c759";
-                    btn.classList.remove('loading');
-                    btn.disabled = false;
-                }
-            }
+            if (error) { msg.innerText = error.message; btn.classList.remove('loading'); }
+            else if (!data.session) { msg.innerText = "Please verify your email!"; btn.classList.remove('loading'); }
         }
     };
 
-    // SETUP PFP LOGIC
+    // --- SETUP PROFILE ---
     document.getElementById('setup-pfp-input').onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            selectedSetupFile = file;
             const reader = new FileReader();
             reader.onload = (ev) => document.getElementById('setup-pfp-preview').src = ev.target.result;
             reader.readAsDataURL(file);
@@ -317,145 +407,74 @@
     };
 
     document.getElementById('btn-setup-finish').onclick = async () => {
-        if (!selectedSetupFile) return alert("Please select a photo or skip.");
-        
+        const file = document.getElementById('setup-pfp-input').files[0];
+        if (!file) return alert("Please select a photo.");
+
         const btn = document.getElementById('btn-setup-finish');
-        btn.classList.add('loading');
-        btn.disabled = true;
-
+        btn.innerText = "Uploading...";
+        
         const { data: { user } } = await _supabase.auth.getUser();
-        const filePath = `avatars/${user.id}-${Date.now()}`;
+        const path = `avatars/${user.id}-${Date.now()}`;
         
-        const { error: upErr } = await _supabase.storage.from('avatars').upload(filePath, selectedSetupFile);
-        if (upErr) {
-            alert(upErr.message);
-            btn.classList.remove('loading');
-            btn.disabled = false;
-            return;
-        }
-
-        const { data: { publicUrl } } = _supabase.storage.from('avatars').getPublicUrl(filePath);
+        await _supabase.storage.from('avatars').upload(path, file);
+        const { data: { publicUrl } } = _supabase.storage.from('avatars').getPublicUrl(path);
+        
         await _supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
-        
-        setView('home');
         location.reload();
     };
 
-    document.getElementById('btn-setup-skip').onclick = () => {
-        setView('home');
-    };
+    document.getElementById('btn-setup-skip').onclick = () => setView('home');
 
-    // SESSION OBSERVER
+    // --- SESSION MGMT ---
     _supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             const user = session.user;
             const meta = user.user_metadata || {};
-            // Priority: Metadata full_name > user's display name > default "Student"
-            const displayName = meta.full_name || user.user_metadata?.full_name || "Student";
-            
-            // Welcome screen name update
-            const setupNameLabel = document.getElementById('setup-user-name');
-            if (setupNameLabel) setupNameLabel.innerText = displayName;
+            const userName = meta.full_name || "Student";
 
-            // Redirect logic: If no PFP and not already on Home or Setup
-            if (!meta.avatar_url && !views.home.classList.contains('active') && !views.setup.classList.contains('active')) {
-                document.getElementById('setup-pfp-preview').src = `https://ui-avatars.com/api/?name=${displayName}&background=0a84ff&color=fff`;
+            // If no avatar and we are not in home view, show setup
+            if (!meta.avatar_url && !views.home.classList.contains('active')) {
+                document.getElementById('setup-name-display').innerText = userName;
                 setView('setup');
                 return;
             }
 
             setView('home');
-            const pfp = meta.avatar_url || `https://ui-avatars.com/api/?name=${displayName}&background=0a84ff&color=fff`;
-            const changesLeft = meta.profile_changes_left ?? 5;
+            const avatar = meta.avatar_url || `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
 
-            // Update Homepage Header with the actual user name
-            document.getElementById('user-display-name').innerText = displayName;
-            
-            // Update Profile Modal Labels
-            document.getElementById('profile-name-label').innerText = displayName;
+            // Display Name Injection
+            document.getElementById('user-display-name').innerText = userName;
+            document.getElementById('profile-name-label').innerText = userName;
             document.getElementById('profile-email-label').innerText = user.email;
             
-            document.getElementById('header-avatar').src = pfp;
-            document.getElementById('modal-avatar').src = pfp;
-            document.getElementById('name-count-status').innerText = `${changesLeft} changes remaining`;
+            document.getElementById('header-avatar').src = avatar;
+            document.getElementById('modal-avatar').src = avatar;
             
-            const updateBtn = document.getElementById('btn-update-name');
-            const pfpBtn = document.getElementById('pfp-trigger');
-            if (changesLeft <= 0) {
-                updateBtn.disabled = true;
-                pfpBtn.style.display = 'none';
-                document.getElementById('new-name').disabled = true;
-                document.getElementById('new-name').placeholder = "No changes left";
-            }
-            snap(0);
+            jumpToSlide(0);
         } else {
             setView('auth');
         }
     });
 
-    // UI HELPERS
-    function snap(idx) {
-        document.getElementById('track').style.transform = `translateX(-${idx * 100}%)`;
-        document.getElementById('nav-indicator').style.transform = `translateX(${idx * 100}%)`;
-        
-        const icons = document.querySelectorAll('nav i');
-        icons.forEach((icon, i) => {
-            icon.closest('div').classList.toggle('text-white', i === idx);
-            icon.closest('div').classList.toggle('text-zinc-500', i !== idx);
-        });
+    function setView(target) {
+        Object.values(views).forEach(v => v.classList.remove('active'));
+        views[target].classList.add('active');
     }
 
     function toggleProfile() {
         const m = document.getElementById('profile-modal');
-        m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        m.classList.toggle('hidden');
     }
 
     async function handleSignOut() {
         await _supabase.auth.signOut();
-        toggleProfile();
-    }
-
-    // PROFILE UPDATES
-    document.getElementById('pfp-trigger').onclick = () => document.getElementById('pfp-upload').click();
-    document.getElementById('pfp-upload').onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        
-        const { data: { user } } = await _supabase.auth.getUser();
-        let left = user.user_metadata.profile_changes_left ?? 5;
-        if (left <= 0) return alert("No changes remaining");
-
-        document.getElementById('name-count-status').innerText = "Updating...";
-        
-        const filePath = `avatars/${user.id}-${Date.now()}`;
-        const { error: upErr } = await _supabase.storage.from('avatars').upload(filePath, file);
-        if(upErr) return alert(upErr.message);
-
-        const { data: { publicUrl } } = _supabase.storage.from('avatars').getPublicUrl(filePath);
-        await _supabase.auth.updateUser({ 
-            data: { 
-                avatar_url: publicUrl, 
-                profile_changes_left: left - 1 
-            } 
-        });
         location.reload();
-    };
+    }
 
     document.getElementById('btn-update-name').onclick = async () => {
         const newName = document.getElementById('new-name').value.trim();
-        const { data: { user } } = await _supabase.auth.getUser();
-        let left = user.user_metadata.profile_changes_left ?? 5;
-        
-        if (left <= 0) return alert("No changes remaining");
-        if (!newName) return alert("Enter a name");
-
-        document.getElementById('btn-update-name').innerText = "...";
-        await _supabase.auth.updateUser({ 
-            data: { 
-                full_name: newName, 
-                profile_changes_left: left - 1 
-            } 
-        });
+        if (!newName) return;
+        await _supabase.auth.updateUser({ data: { full_name: newName } });
         location.reload();
     };
 </script>
