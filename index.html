@@ -1,1035 +1,383 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>DailyDoseofBCA</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>DailyDoseofBCA</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>DailyDoseofBCA</title>
+    <style>
+        :root {
+            --bg-base: #000000;
+            --accent-blue: #0a84ff;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
 
-<!-- Supabase SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        body {
+            background-color: var(--bg-base);
+            color: #ffffff;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui;
+        }
 
-<!-- FAVICON -->
-<link rel="icon" href="mylogo.png" type="image/png">
-<link rel="apple-touch-icon" href="mylogo.png">
+        .view { position: fixed; inset: 0; display: none; flex-direction: column; z-index: 10; background: black; }
+        .view.active { display: flex; }
 
-<style>
-  :root {
-    /* iOS Dark Mode Palette */
-    --bg-base: #121212;
-    --bg-gradient-start: #1c1c1e;
-    
-    /* Text Colors */
-    --text-primary: #f5f5f7;
-    --text-secondary: #86868b;
-    --accent-blue: #0a84ff;
-    
-    /* Glassmorphism Variables (Dark) */
-    --glass-panel: rgba(28, 28, 30, 0.65);
-    --glass-nav: rgba(28, 28, 30, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-highlight: rgba(255, 255, 255, 0.05);
-    --glass-blur: blur(25px);
+        .ios-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+        }
 
-    /* Animation Springs */
-    --ease-elastic: cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
+        .ios-btn {
+            width: 100%;
+            background: var(--accent-blue);
+            color: white;
+            border-radius: 16px;
+            padding: 18px;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-    user-select: none;
-  }
+        .ios-btn:active { transform: scale(0.96); opacity: 0.8; }
 
-  body {
-    background-color: var(--bg-base);
-    color: var(--text-primary);
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-  }
+        .slider-track { display: flex; height: 100%; transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1); }
+        .slide { min-width: 100%; height: 100%; overflow-y: auto; padding: 0 24px 140px; }
 
-  /* --- AUTH OVERLAY STYLES --- */
-  #auth-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    transition: opacity 0.4s ease;
-  }
+        #profile-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(25px);
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 3000;
+        }
 
-  .auth-card {
-    background: var(--glass-panel);
-    border: 1px solid var(--glass-border);
-    border-radius: 28px;
-    padding: 30px;
-    width: 100%;
-    max-width: 360px;
-    text-align: center;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-  }
+        .modal-content {
+            width: 100%;
+            background: #1c1c1e;
+            border-radius: 32px 32px 0 0;
+            padding: 30px 24px env(safe-area-inset-bottom);
+        }
 
-  .auth-input {
-    width: 100%;
-    padding: 14px;
-    margin: 8px 0;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    color: white;
-    outline: none;
-    font-size: 1rem;
-  }
-
-  .auth-btn {
-    width: 100%;
-    padding: 14px;
-    margin-top: 15px;
-    background: var(--accent-blue);
-    color: white;
-    border: none;
-    border-radius: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    font-size: 1rem;
-  }
-
-  .google-btn {
-    background: white;
-    color: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  #logout-btn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 100;
-    background: none;
-    border: none;
-    color: #ff453a;
-    font-size: 0.8rem;
-    font-weight: 500;
-    opacity: 0.6;
-    cursor: pointer;
-    display: none;
-  }
-
-  /* --- DARK BACKGROUND BLOBS --- */
-  .blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
-    z-index: -1;
-    opacity: 0.25; 
-    animation: float 12s infinite ease-in-out alternate;
-  }
-  
-  .blob-1 { top: -10%; left: -10%; width: 60vw; height: 60vw; background: #3b82f6; }
-  .blob-2 { top: 20%; right: -20%; width: 50vw; height: 50vw; background: #8b5cf6; animation-delay: -3s; }
-  .blob-3 { bottom: -10%; left: 10%; width: 60vw; height: 60vw; background: #10b981; animation-delay: -6s; }
-  
-  @keyframes float {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(30px, -30px) scale(1.1); }
-  }
-
-  /* --- HEADER --- */
-  header {
-    flex-shrink: 0;
-    padding: 3.5rem 1.5rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    z-index: 10;
-  }
-
-  .brand {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #fff, #a1a1aa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 0.5rem;
-    cursor: pointer;
-  }
-  
-  .brand:active { opacity: 0.7; }
-
-  .subtitle {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 400;
-    max-width: 85%;
-    line-height: 1.4;
-  }
-
-  #welcome-msg {
-    color: var(--accent-blue);
-    font-weight: 600;
-    margin-bottom: 5px;
-    font-size: 1rem;
-    display: none;
-  }
-
-  /* --- SLIDER VIEWPORT --- */
-  .slider-viewport {
-    flex: 1;
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .slider-track {
-    display: flex;
-    height: 100%;
-    width: 300%; 
-    will-change: transform;
-    transform: translate3d(0, 0, 0); 
-  }
-
-  .slide {
-    width: 100vw; 
-    max-width: 800px;
-    height: 100%;
-    overflow-y: auto;
-    padding: 20px;
-    padding-bottom: 140px; 
-    scrollbar-width: none; 
-  }
-  .slide::-webkit-scrollbar { display: none; }
-
-  /* --- DARK CARDS --- */
-  .card {
-    background: var(--glass-panel);
-    border: 1px solid var(--glass-border);
-    border-top: 1px solid var(--glass-highlight);
-    border-radius: 22px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: transform 0.2s, background 0.2s;
-  }
-  .card:active { 
-    transform: scale(0.98); 
-    background: rgba(44, 44, 46, 0.8);
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-  }
-
-  .subject-group { display: flex; flex-direction: column; gap: 4px; }
-  .subject { font-size: 1.1rem; font-weight: 700; color: #fff; }
-  .topic-preview { font-size: 0.8rem; color: var(--accent-blue); font-weight: 500; }
-
-  .tag {
-    font-size: 0.7rem;
-    padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    margin-left: 10px;
-  }
-
-  .description {
-    font-size: 0.9rem;
-    color: #aeaeb2;
-    line-height: 1.5;
-    margin-bottom: 16px;
-  }
-
-  /* Buttons */
-  .action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 14px;
-    background: rgba(10, 132, 255, 0.15);
-    color: #64d2ff;
-    border: 1px solid rgba(10, 132, 255, 0.3);
-    border-radius: 14px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-  .action-btn:active { background: rgba(10, 132, 255, 0.25); }
-
-  .action-btn.lab { 
-    background: rgba(191, 90, 242, 0.15); 
-    color: #d996ff; 
-    border-color: rgba(191, 90, 242, 0.3);
-  }
-  .action-btn.assign { 
-    background: rgba(48, 209, 88, 0.15); 
-    color: #6ce086; 
-    border-color: rgba(48, 209, 88, 0.3);
-    margin-top: 10px; 
-  }
-
-  /* Accordion */
-  .accordion-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
-    margin-top: 0;
-    opacity: 0.7;
-  }
-  .accordion-content.open { 
-    margin-top: 12px; 
-    padding-top: 12px; 
-    border-top: 1px solid rgba(255,255,255,0.1); 
-    opacity: 1;
-  }
-
-  /* --- BOTTOM NAV (Floating) --- */
-  .nav-wrapper {
-    position: fixed;
-    bottom: 30px;
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    z-index: 100;
-    pointer-events: none; 
-  }
-
-  .nav-container {
-    pointer-events: auto; 
-    position: relative;
-    width: 340px;
-    height: 64px;
-    background: rgba(30, 30, 30, 0.8);
-    backdrop-filter: blur(35px);
-    -webkit-backdrop-filter: blur(35px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 32px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    padding: 0 5px;
-    overflow: visible;
-  }
-
-  .nav-knob {
-    position: absolute;
-    left: 5px;
-    top: 5px;
-    bottom: 5px;
-    width: calc((100% - 10px) / 3);
-    background: rgba(99, 99, 102, 0.4);
-    border-radius: 28px;
-    border: 1px solid rgba(255,255,255,0.1);
-    z-index: 1;
-  }
-
-  .nav-item {
-    flex: 1;
-    text-align: center;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #8e8e93;
-    z-index: 2;
-    cursor: pointer;
-    padding: 15px 0;
-    transition: color 0.2s;
-  }
-
-  .nav-item.active {
-    color: #fff;
-    font-weight: 600;
-  }
-
-  @media (min-width: 801px) {
-    .slide { width: 33.333%; }
-  }
-</style>
+        /* OTP Code Tracking styling */
+        .otp-input {
+            letter-spacing: 0.8em;
+            text-align: center;
+            font-weight: 900;
+            font-size: 24px;
+        }
+    </style>
 </head>
 <body>
 
-<!-- AUTH OVERLAY -->
-<div id="auth-overlay">
-  <div class="auth-card">
-    <h2 id="auth-title" style="margin-bottom: 20px;">Welcome Back</h2>
-    
-    <button id="google-login" class="auth-btn google-btn">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
-      Continue with Google
-    </button>
+    <!-- AUTHENTICATION VIEW -->
+    <div id="view-auth" class="view active items-center justify-center p-6">
+        <div class="w-full max-w-[400px] text-center">
+            <h1 id="auth-title" class="text-4xl font-black mb-2">DailyDose</h1>
+            <p class="text-zinc-500 mb-10 text-sm">Access notes, assignments & labs.</p>
+            
+            <div class="space-y-3">
+                <input type="text" id="reg-name" class="ios-input hidden" placeholder="Full Name">
+                <input type="email" id="reg-email" class="ios-input" placeholder="Email Address">
+                <input type="password" id="reg-pass" class="ios-input" placeholder="Password">
+            </div>
 
-    <div style="margin-bottom: 20px; color: var(--text-secondary); font-size: 0.8rem;">OR</div>
-
-    <input type="text" id="username" class="auth-input" placeholder="Your Full Name (Signup only)" style="display: none;">
-    <input type="text" id="identifier" class="auth-input" placeholder="Email or Phone (+1...)">
-    <input type="password" id="password" class="auth-input" placeholder="Password">
-    
-    <button id="auth-submit" class="auth-btn">Continue</button>
-    
-    <p id="auth-toggle" style="margin-top: 20px; font-size: 0.85rem; color: var(--accent-blue); cursor: pointer;">Don't have an account? Sign Up</p>
-    <p id="auth-msg" style="margin-top: 15px; font-size: 0.8rem; min-height: 1.2rem;"></p>
-  </div>
-</div>
-
-<button id="logout-btn">Sign Out</button>
-
-<!-- Dark Blobs -->
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
-<div class="blob blob-3"></div>
-
-<header>
-  <div class="brand" onclick="window.location.reload()">DailyDoseofBCA</div>
-  <div id="welcome-msg">Hello, Student!</div>
-  <p class="subtitle">Get all your notes, assignments here which are handwritten</p>
-</header>
-
-<!-- Main Content Slider -->
-<div class="slider-viewport" id="viewport">
-  <div class="slider-track" id="track">
-    
-    <!-- PAGE 1: NOTES -->
-    <div class="slide">
-      <div class="card">
-        <div class="card-header">
-          <div class="subject-group"><span class="subject">Mobile App Dev</span></div>
-          <span class="tag" style="color:#32c46a; background: rgba(50, 196, 106, 0.1);">Updated!</span>
+            <button id="btn-auth-submit" class="ios-btn mt-6">Continue</button>
+            <p id="auth-toggle" class="mt-8 text-sm text-blue-500 font-bold cursor-pointer">Don't have an account? Sign Up</p>
+            <p id="auth-msg" class="mt-4 text-xs font-medium min-h-[1rem]"></p>
         </div>
-        <p class="description">Development of Android Applications.</p>
-        <a href="https://drive.google.com/file/d/1eqbwVfpe7OvzrVSnUq_1b732fFSEGnXT/view?usp=sharing" class="action-btn">Open PDF</a>
-      </div>
-      <!-- Additional original cards here... -->
     </div>
 
-    <!-- PAGE 2: ASSIGNMENTS -->
-    <div class="slide">
-      <div class="card" onclick="toggleAccordion(this)">
-        <div class="card-header">
-          <div class="subject-group">
-            <span class="subject">MAD Assignment</span>
-            <span class="topic-preview">Topic: Android Studio Install</span>
-          </div>
-          <span class="tag" style="color:#32c46a; background: rgba(50, 196, 106, 0.1);">Due: Monday</span>
+    <!-- OTP VERIFICATION VIEW -->
+    <div id="view-otp" class="view items-center justify-center p-6">
+        <div class="w-full max-w-[400px] text-center">
+            <div class="w-20 h-20 bg-blue-500/10 text-blue-500 rounded-3xl mx-auto mb-6 flex items-center justify-center">
+                <i data-lucide="mail" size="32"></i>
+            </div>
+            <h1 class="text-2xl font-bold mb-2">Verify your email</h1>
+            <p class="text-zinc-500 mb-8 text-sm px-4">We sent a verification code to <br><span id="display-otp-email" class="text-white font-bold">your email</span></p>
+            
+            <input type="number" id="otp-code" class="ios-input otp-input mb-6" placeholder="000000" oninput="if(this.value.length > 6) this.value = this.value.slice(0,6)">
+            
+            <button id="btn-otp-verify" class="ios-btn mb-6">Verify & Login</button>
+            
+            <div class="flex flex-col gap-4">
+                <button id="btn-otp-resend" class="text-blue-500 font-bold text-sm">Resend code</button>
+                <button onclick="setView('auth')" class="text-zinc-500 text-sm font-medium">Use a different email</button>
+            </div>
+            
+            <p id="otp-msg" class="mt-6 text-xs font-medium"></p>
         </div>
-        <div class="accordion-content">
-          <p class="description">Search android studio install GFG in Google. Write 9 steps with diagrams.</p>
-          <a href="#" target="_blank" class="action-btn assign" onclick="event.stopPropagation()">Open Assignment</a>
-        </div>
-      </div>
     </div>
 
-    <!-- PAGE 3: LAB WORK -->
-    <div class="slide">
-      <div class="card">
-        <div class="card-header"><span class="subject">MAD Lab</span></div>
-        <p class="description">.-------------------.</p>
-        <a href="#" class="action-btn lab">View Manual</a>
-      </div>
+    <!-- HOME VIEW -->
+    <div id="view-home" class="view">
+        <header class="pt-16 px-6 pb-4 flex justify-between items-center">
+            <div>
+                <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest">DailyDose Workspace</h2>
+                <h1 id="user-display-name" class="text-3xl font-bold tracking-tight">Student</h1>
+            </div>
+            <button onclick="toggleProfile()" class="active:scale-90 transition-transform">
+                <img id="header-avatar" src="" class="w-12 h-12 rounded-full border-2 border-white/10 object-cover bg-zinc-800">
+            </button>
+        </header>
+
+        <div class="slider-viewport flex-1 overflow-hidden relative" id="viewport">
+            <div class="slider-track" id="track">
+                <div class="slide">
+                    <h2 class="text-xl font-bold mb-6 text-zinc-400">Notes</h2>
+                    <div class="bg-zinc-900/50 p-6 rounded-[28px] border border-white/5 mb-4">
+                        <h3 class="text-lg font-bold mb-1">Android Development</h3>
+                        <p class="text-sm text-zinc-500 mb-6">Complete guide to Fragments & Lifecycle.</p>
+                        <button onclick="window.open('https://drive.google.com')" class="w-full py-4 bg-zinc-100 text-black rounded-2xl font-bold text-sm">Open Drive PDF</button>
+                    </div>
+                </div>
+                <div class="slide"><h2 class="text-xl font-bold mb-6 text-zinc-400">Assignments</h2></div>
+                <div class="slide"><h2 class="text-xl font-bold mb-6 text-zinc-400">Lab Manuals</h2></div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-10 left-0 w-full flex justify-center px-6 pointer-events-none">
+            <nav class="w-full max-w-[400px] h-20 bg-zinc-900/80 backdrop-blur-2xl border border-white/10 rounded-[40px] flex items-center p-2 pointer-events-auto">
+                <div id="nav-indicator" class="absolute h-16 w-[calc((100%-16px)/3)] bg-white/5 border border-white/10 rounded-[32px] transition-transform duration-500 cubic-bezier(0.2, 1, 0.3, 1)"></div>
+                <div class="flex-1 flex flex-col items-center justify-center z-10 text-white" onclick="snap(0)">
+                    <i data-lucide="book-open"></i>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center z-10 text-zinc-500" onclick="snap(1)">
+                    <i data-lucide="edit-3"></i>
+                </div>
+                <div class="flex-1 flex flex-col items-center justify-center z-10 text-zinc-500" onclick="snap(2)">
+                    <i data-lucide="flask-conical"></i>
+                </div>
+            </nav>
+        </div>
     </div>
 
-  </div>
-</div>
-
-<!-- BOTTOM FLOATING NAV -->
-<div class="nav-wrapper">
-  <div class="nav-container" id="nav-container">
-    <div class="nav-knob" id="nav-knob"></div>
-    <div class="nav-item active" data-index="0">Notes</div>
-    <div class="nav-item" data-index="1">Assign</div>
-    <div class="nav-item" data-index="2">Lab Work</div>
-  </div>
-</div>
+    <!-- PROFILE MODAL -->
+    <div id="profile-modal" onclick="toggleProfile()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex flex-col items-center mb-10">
+                <div class="relative">
+                    <img id="modal-avatar" src="" class="w-24 h-24 rounded-full object-cover border-4 border-blue-500 bg-zinc-800">
+                    <input type="file" id="pfp-upload" class="hidden" accept="image/*">
+                    <button id="pfp-trigger" class="absolute -bottom-2 -right-2 bg-blue-600 p-3 rounded-full border-4 border-[#1c1c1e]">
+                        <i data-lucide="camera" size="18"></i>
+                    </button>
+                </div>
+                <h3 id="profile-name-label" class="text-2xl font-bold mt-4">Name</h3>
+                <p id="profile-email-label" class="text-zinc-500 text-sm">email@student.com</p>
+            </div>
+            <div class="space-y-8">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-3 block">Display Identity</label>
+                    <div class="flex gap-3">
+                        <input type="text" id="new-name" class="ios-input flex-1" placeholder="New name">
+                        <button id="btn-update-name" class="bg-white text-black px-6 rounded-2xl font-bold text-sm">Update</button>
+                    </div>
+                    <p id="name-count-status" class="text-[11px] mt-3 text-zinc-500 font-medium">3 changes remaining</p>
+                </div>
+                <div class="pt-6 border-t border-white/5">
+                    <button onclick="handleSignOut()" class="w-full py-5 bg-red-500/10 text-red-500 rounded-3xl font-bold text-sm">Sign Out</button>
+                    <button onclick="toggleProfile()" class="w-full py-4 text-zinc-600 font-bold text-sm mt-2">Dismiss</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
-  // --- 1. SUPABASE AUTH LOGIC ---
-  const SUPABASE_URL = 'https://nsvkbxssnjjwhsrsxirs.supabase.co'; 
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zdmtieHNzbmpqd2hzcnN4aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDA4NzksImV4cCI6MjA4MTk3Njg3OX0.S5GgEm49x6nJFmnOSsFI3Nte-mwNmVUbwTkxqa8h3yE';
-  const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    lucide.createIcons();
 
-  const authOverlay = document.getElementById('auth-overlay');
-  const authTitle = document.getElementById('auth-title');
-  const authToggle = document.getElementById('auth-toggle');
-  const authSubmit = document.getElementById('auth-submit');
-  const googleBtn = document.getElementById('google-login');
-  const usernameInput = document.getElementById('username');
-  const identifierInput = document.getElementById('identifier');
-  const passwordInput = document.getElementById('password');
-  const authMsg = document.getElementById('auth-msg');
-  const logoutBtn = document.getElementById('logout-btn');
-  const welcomeMsg = document.getElementById('welcome-msg');
+    // Supabase Initialization
+    const SB_URL = 'https://nsvkbxssnjjwhsrsxirs.supabase.co'; 
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zdmtieHNzbmpqd2hzcnN4aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDA4NzksImV4cCI6MjA4MTk3Njg3OX0.S5GgEm49x6nJFmnOSsFI3Nte-mwNmVUbwTkxqa8h3yE';
+    const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-  let isLogin = true;
+    const views = {
+        auth: document.getElementById('view-auth'),
+        otp: document.getElementById('view-otp'),
+        home: document.getElementById('view-home')
+    };
 
-  authToggle.onclick = () => {
-    isLogin = !isLogin;
-    authTitle.innerText = isLogin ? "Welcome Back" : "Create Account";
-    authToggle.innerText = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In";
-    usernameInput.style.display = isLogin ? "none" : "block";
-    authMsg.innerText = "";
-  };
+    let userEmail = "";
+    let isLoginMode = true;
 
-  googleBtn.onclick = async () => {
-    await _supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin }});
-  };
-
-  authSubmit.onclick = async () => {
-    const val = identifierInput.value;
-    const pass = passwordInput.value;
-    const name = usernameInput.value;
-    const isPhone = /^\+?[1-9]\d{1,14}$/.test(val);
-
-    authMsg.style.color = "var(--text-secondary)";
-    authMsg.innerText = "Processing...";
-
-    if (isLogin) {
-      const { error } = await _supabase.auth.signInWithPassword(isPhone ? { phone: val, password: pass } : { email: val, password: pass });
-      if (error) { authMsg.style.color = "#ff453a"; authMsg.innerText = error.message; }
-    } else {
-      const { error } = await _supabase.auth.signUp(
-        isPhone ? { phone: val, password: pass, options: { data: { full_name: name } } } 
-                : { email: val, password: pass, options: { data: { full_name: name } } }
-      );
-      if (error) { authMsg.style.color = "#ff453a"; authMsg.innerText = error.message; }
-      else { authMsg.style.color = "#32c46a"; authMsg.innerText = "Check your email/SMS to verify!"; }
+    function setView(target) {
+        Object.values(views).forEach(v => v.classList.remove('active'));
+        views[target].classList.add('active');
     }
-  };
 
-  _supabase.auth.onAuthStateChange((event, session) => {
-    if (session) {
-      authOverlay.style.opacity = "0";
-      setTimeout(() => authOverlay.style.display = 'none', 400);
-      logoutBtn.style.display = 'block';
-      welcomeMsg.style.display = 'block';
-      const name = session.user.user_metadata.full_name || "Student";
-      welcomeMsg.innerText = `Hello, ${name}!`;
-    } else {
-      authOverlay.style.display = 'flex';
-      setTimeout(() => authOverlay.style.opacity = "1", 10);
-      logoutBtn.style.display = 'none';
-      welcomeMsg.style.display = 'none';
-    }
-  });
+    // AUTH SWITCH
+    document.getElementById('auth-toggle').onclick = () => {
+        isLoginMode = !isLoginMode;
+        document.getElementById('auth-title').innerText = isLoginMode ? "Welcome Back" : "Create Account";
+        document.getElementById('auth-toggle').innerText = isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In";
+        document.getElementById('reg-name').classList.toggle('hidden', isLoginMode);
+    };
 
-  logoutBtn.onclick = async () => await _supabase.auth.signOut();
+    // SUBMIT SIGNUP/LOGIN
+    document.getElementById('btn-auth-submit').onclick = async () => {
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-pass').value;
+        const name = document.getElementById('reg-name').value;
+        const msg = document.getElementById('auth-msg');
 
-  // --- 2. YOUR ORIGINAL ROBUST NAV LOGIC (EXACTLY AS PROVIDED) ---
-  const navContainer = document.getElementById('nav-container');
-  const navKnob = document.getElementById('nav-knob');
-  const track = document.getElementById('track');
-  const viewport = document.getElementById('viewport');
-  const navItems = document.querySelectorAll('.nav-item');
+        if(!email || !password) return alert("Fill required fields");
+        userEmail = email;
+        msg.innerText = "Processing...";
+        msg.style.color = "#888";
 
-  let currentIndex = 0;
-  let isDragging = false;
-  let navWidth, knobWidth, maxTranslate;
+        if (isLoginMode) {
+            const { error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                msg.innerText = error.message;
+                msg.style.color = "#ff453a";
+            }
+        } else {
+            const { data, error } = await _supabase.auth.signUp({
+                email, password,
+                options: { data: { full_name: name || "Student", name_changes_left: 3, pfp_set: false } }
+            });
+            
+            if (error) {
+                msg.innerText = error.message;
+                msg.style.color = "#ff453a";
+            } else {
+                if (data.user && !data.session) {
+                    document.getElementById('display-otp-email').innerText = email;
+                    setView('otp');
+                } else if (data.session) {
+                    setView('home');
+                }
+            }
+        }
+    };
 
-  function initDimensions() {
-    navWidth = navContainer.clientWidth;
-    knobWidth = (navWidth - 10) / 3; 
-    maxTranslate = navWidth - 10 - knobWidth;
-  }
+    // OTP VERIFY
+    document.getElementById('btn-otp-verify').onclick = async () => {
+        const code = document.getElementById('otp-code').value.trim();
+        const msg = document.getElementById('otp-msg');
 
-  navContainer.addEventListener('touchstart', dragStart, {passive: false});
-  navContainer.addEventListener('touchmove', dragMove, {passive: false});
-  navContainer.addEventListener('touchend', dragEnd);
-  navContainer.addEventListener('mousedown', dragStart);
-  window.addEventListener('mousemove', dragMove);
-  window.addEventListener('mouseup', dragEnd);
+        if (code.length < 6) return alert("Enter 6-digit code");
+        msg.innerText = "Verifying code...";
+        msg.style.color = "#888";
 
-  function dragStart(e) {
-    if (e.target.closest('.nav-container')) {
-      isDragging = true;
-      initDimensions();
-      navKnob.style.transition = 'none';
-      track.style.transition = 'none';
-    }
-  }
+        const { error } = await _supabase.auth.verifyOtp({
+            email: userEmail,
+            token: code,
+            type: 'signup'
+        });
 
-  function dragMove(e) {
-    if (!isDragging) return;
-    e.preventDefault(); 
-    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    const navRect = navContainer.getBoundingClientRect();
-    let offsetX = clientX - navRect.left - 5 - (knobWidth / 2);
-    if (offsetX < 0) offsetX = 0;
-    if (offsetX > maxTranslate) offsetX = maxTranslate;
-    navKnob.style.transform = `translateX(${offsetX}px)`;
-    const percentage = offsetX / maxTranslate; 
-    const slideWidth = viewport.clientWidth;
-    const contentTranslate = percentage * -(slideWidth * 2);
-    track.style.transform = `translateX(${contentTranslate}px)`;
-    highlightNavText(percentage);
-  }
+        if (error) {
+            msg.innerText = error.message;
+            msg.style.color = "#ff453a";
+        } else {
+            msg.innerText = "Verified! Welcome.";
+            msg.style.color = "#32c46a";
+        }
+    };
 
-  function dragEnd() {
-    if (!isDragging) return;
-    isDragging = false;
-    const currentKnobTransform = new WebKitCSSMatrix(window.getComputedStyle(navKnob).transform).m41;
-    const percentage = currentKnobTransform / maxTranslate;
-    if (percentage < 0.33) currentIndex = 0;
-    else if (percentage < 0.66) currentIndex = 1;
-    else currentIndex = 2;
-    snapToPosition();
-  }
+    // RESEND OTP
+    document.getElementById('btn-otp-resend').onclick = async () => {
+        const btn = document.getElementById('btn-otp-resend');
+        btn.disabled = true;
+        btn.innerText = "Sending...";
+        
+        const { error } = await _supabase.auth.resend({
+            type: 'signup',
+            email: userEmail
+        });
 
-  navItems.forEach((item, index) => {
-    item.addEventListener('click', () => { currentIndex = index; snapToPosition(); });
-  });
+        if (error) {
+            alert("Rate limit exceeded. Try again in a minute.");
+        } else {
+            alert("New code sent to " + userEmail);
+        }
+        
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerText = "Resend code";
+        }, 10000);
+    };
 
-  function snapToPosition() {
-    initDimensions();
-    const preciseKnobX = ((navWidth - 10) / 3) * currentIndex;
-    navKnob.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-    navKnob.style.transform = `translateX(${preciseKnobX}px)`;
-    const slideWidth = viewport.clientWidth;
-    const contentX = currentIndex * -slideWidth;
-    track.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-    track.style.transform = `translateX(${contentX}px)`;
-    navItems.forEach((item, idx) => {
-      const active = idx === currentIndex;
-      item.classList.toggle('active', active);
-      item.style.color = active ? '#fff' : '#8e8e93';
+    // SESSION OBSERVER
+    _supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            setView('home');
+            const meta = session.user.user_metadata;
+            const name = meta.full_name || "Student";
+            const pfp = meta.avatar_url || `https://ui-avatars.com/api/?name=${name}&background=0a84ff&color=fff`;
+
+            document.getElementById('user-display-name').innerText = name;
+            document.getElementById('profile-name-label').innerText = name;
+            document.getElementById('profile-email-label').innerText = session.user.email;
+            document.getElementById('header-avatar').src = pfp;
+            document.getElementById('modal-avatar').src = pfp;
+
+            if (meta.pfp_set) document.getElementById('pfp-trigger').style.display = 'none';
+            document.getElementById('name-count-status').innerText = `${meta.name_changes_left ?? 3} changes remaining`;
+            snap(0);
+        } else if (!views.otp.classList.contains('active')) {
+            setView('auth');
+        }
     });
-  }
 
-  function highlightNavText(pct) {
-    let activeIdx = pct > 0.66 ? 2 : pct > 0.33 ? 1 : 0;
-    navItems.forEach((item, idx) => {
-      const active = idx === activeIdx;
-      item.classList.toggle('active', active);
-      item.style.color = active ? '#fff' : '#8e8e93';
-    });
-  }
-
-  function toggleAccordion(card) {
-    const content = card.querySelector('.accordion-content');
-    if (content.style.maxHeight) {
-      content.style.maxHeight = null;
-      content.classList.remove('open');
-    } else {
-      content.style.maxHeight = content.scrollHeight + "px";
-      content.classList.add('open');
+    // NAVIGATION
+    function snap(idx) {
+        document.getElementById('track').style.transform = `translateX(-${idx * 100}%)`;
+        document.getElementById('nav-indicator').style.transform = `translateX(${idx * 100}%)`;
     }
-  }
 
-  window.addEventListener('resize', () => { initDimensions(); snapToPosition(); });
-  window.onload = () => { initDimensions(); snapToPosition(); };
+    function toggleProfile() {
+        const m = document.getElementById('profile-modal');
+        m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    async function handleSignOut() {
+        await _supabase.auth.signOut();
+        toggleProfile();
+    }
+
+    // PROFILE UPDATES
+    document.getElementById('pfp-trigger').onclick = () => document.getElementById('pfp-upload').click();
+    document.getElementById('pfp-upload').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const { data: { user } } = await _supabase.auth.getUser();
+        const filePath = `avatars/${user.id}-${Date.now()}`;
+        await _supabase.storage.from('avatars').upload(filePath, file);
+        const { data: { publicUrl } } = _supabase.storage.from('avatars').getPublicUrl(filePath);
+        await _supabase.auth.updateUser({ data: { avatar_url: publicUrl, pfp_set: true } });
+        location.reload();
+    };
+
+    document.getElementById('btn-update-name').onclick = async () => {
+        const newName = document.getElementById('new-name').value.trim();
+        const { data: { user } } = await _supabase.auth.getUser();
+        let left = user.user_metadata.name_changes_left ?? 3;
+        if (left <= 0 || !newName) return;
+        await _supabase.auth.updateUser({ data: { full_name: newName, name_changes_left: left - 1 } });
+        location.reload();
+    };
 </script>
 </body>
 </html>
 
 
-### How to use this:
-1.  **Project Credentials**: Update `YOUR_PROJECT_URL` and `YOUR_ANON_KEY` in the script section.
-2.  **Username Visibility**: The username field automatically appears when the user clicks "Sign Up" and stays hidden during "Login".
-3.  **Site Logic**: I did not change a single CSS rule or HTML class from your provided design. The "Hello, Student!" text will appear at the top center once logged in.
-4.  **Google Login**: In your Supabase dashboard, make sure you enable Google and add `https://yourdomain.com` to the "Redirect URLs" under **Authentication > URL Configuration**.
-</head>
-<body>
-
-<div id="auth-overlay">
-  <div class="auth-card">
-    <h2 id="auth-title">Welcome</h2>
-    
-    <input type="text" id="username" class="auth-input signup-only" placeholder="Your Name / Username">
-    
-    <input type="text" id="identifier" class="auth-input" placeholder="Email or Phone">
-    <input type="password" id="password" class="auth-input" placeholder="Password">
-    
-    <button id="auth-submit" class="auth-btn">Continue</button>
-    <p id="auth-toggle" style="margin-top: 15px; font-size: 0.8rem; color: var(--accent-blue); cursor: pointer;">Don't have an account? Sign Up</p>
-    <p id="auth-msg" style="font-size: 0.8rem; margin-top: 10px;"></p>
-  </div>
-</div>
-
-<header>
-  <div class="brand" onclick="window.location.reload()">DailyDoseofBCA</div>
-  <p class="subtitle">Get all your notes, assignments here which are handwritten</p>
-</header>
-
-<!-- Main Content Slider -->
-<div class="slider-viewport" id="viewport">
-  <div class="slider-track" id="track">
-    
-    <!-- PAGE 1: NOTES -->
-    <div class="slide">
-      <div class="card">
-        <div class="card-header">
-          <div class="subject-group"><span class="subject">Mobile App Dev</span></div>
-          <span class="tag" style="color:#32c46a; background: rgba(50, 196, 106, 0.1);">Updated!</span>
-        </div>
-        <p class="description">Development of Android Applications.</p>
-        <a href="https://drive.google.com/file/d/1eqbwVfpe7OvzrVSnUq_1b732fFSEGnXT/view?usp=sharing" class="action-btn">Open PDF</a>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="subject-group"><span class="subject">Python</span></div>
-          <span class="tag" style="color:#32c46a; background: rgba(50, 196, 106, 0.1);">13 Dec</span>
-        </div>
-        <p class="description">Programming with Python.</p>
-        <a href="https://drive.google.com/file/d/1YO_-FEzv9xf_KgwBtr_M3q4gKd_2nqaz/view?usp=sharing" class="action-btn">Open PDF</a>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <div class="subject-group"><span class="subject">Operating Systems</span></div>
-          <span class="tag" style="color:#ff0000; background: rgba(233, 18, 36, 0.1);">Not Updated</span>
-        </div>
-        <p class="description">Working of Operating Systems.</p>
-        <a href="https://drive.google.com/file/d/1E98zYYEERfjGXAeFPMcoLDhvVQN5i_It/view?usp=sharing" class="action-btn">Open PDF</a>
-      </div>
-       <div class="card">
-        <div class="card-header">
-          <div class="subject-group"><span class="subject">AFM</span></div>
-          <span class="tag" style="color:#ffd900; background: rgba(255, 238, 0, 0.1);">06 Dec</span>
-        </div>
-        <p class="description">Accounting & Financial Management.</p>
-        <a href="https://drive.google.com/file/d/1bBNn016vo-gj9mf_7p-CMZaZEP7BV-cD/view?usp=sharing" class="action-btn">Open PDF</a>
-      </div>
-       <div class="card">
-        <div class="card-header">
-          <div class="subject-group"><span class="subject">SEO</span></div>
-          <span class="tag" style="color:hsl(0, 100%, 50%); background: rgba(255, 0, 0, 0.137);">10 Dec</span>
-        </div>
-        <p class="description">What is SEO, how does it work?</p>
-        <a href="https://drive.google.com/file/d/1sTi59Twjk9nyB9n5xlv9JMeWWmH0CFVB/view?usp=sharing" class="action-btn">Open PDF</a>
-      </div>
-    </div>
-
-    <!-- PAGE 2: ASSIGNMENTS -->
-    <div class="slide">
-      <div class="card" onclick="toggleAccordion(this)">
-        <div class="card-header">
-          <div class="subject-group">
-            <span class="subject">MAD Assignment</span>
-            <span class="topic-preview">Topic: Android Studio Install</span>
-          </div>
-          <span class="tag" style="color:#32c46a; background: rgba(50, 196, 106, 0.1);">Due: Monday</span>
-        </div>
-        <div class="accordion-content">
-          <p class="description">Search android studio install GFG in Google. Write 9 steps with diagrams.</p>
-          <a href="https://www.geeksforgeeks.org/android/guide-to-install-and-set-up-android-studio/" target="_blank" class="action-btn assign" onclick="event.stopPropagation()">Open Assignment</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleAccordion(this)">
-        <div class="card-header">
-          <div class="subject-group">
-            <span class="subject">AFM Assignment</span>
-            <span class="topic-preview">Topic: Types, Advantages and disadvantages of AFM</span>
-          </div>
-          <span class="tag" style="color:#e71010; background: rgba(214, 35, 35, 0.1);">Due: 8 Dec</span>
-        </div>
-        <div class="accordion-content">
-          <p class="description">The topic is in the notebook</p>
-          <a href="https://drive.google.com/file/d/1-Ph21Km1u4eMbCy63Ynd_sSeqhOmLN5f/view?usp=drive_link" target="_blank" class="action-btn assign" onclick="event.stopPropagation()">Open Assignment</a>
-        </div>
-      </div>
-      <div class="card" onclick="toggleAccordion(this)">
-        <div class="card-header">
-          <div class="subject-group">
-            <span class="subject">Python Assignment</span>
-            <span class="topic-preview">Topic: Strings and String Functions</span>
-          </div>
-          <span class="tag" style="color:#e71010; background: rgba(214, 35, 35, 0.1);">Due: 15 Dec</span>
-        </div>
-        <div class="accordion-content">
-          <p class="description">The topic is in the notebook</p>
-          <a href="https://drive.google.com/file/d/1LJIpdBy3_PIrWBXv9Dx5lyaJim3TzhQ5/view?usp=drive_link" target="_blank" class="action-btn assign" onclick="event.stopPropagation()">Open Assignment</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- PAGE 3: LAB WORK -->
-    <div class="slide">
-      <div class="card">
-        <div class="card-header"><span class="subject">MAD Lab</span></div>
-        <p class="description">.-------------------.</p>
-        <a href="#" class="action-btn lab">View Manual</a>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="subject">Python Lab</span></div>
-        <p class="description">.-------------------.</p>
-        <a href="#" class="action-btn lab">View Manual</a>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="subject">OS Lab</span></div>
-        <p class="description">.-------------------.</p>
-        <a href="#" class="action-btn lab">View Manual</a>
-      </div>
-       <div class="card">
-        <div class="card-header"><span class="subject">SEO Lab</span></div>
-        <p class="description">.-------------------.</p>
-        <a href="#" class="action-btn lab">View Manual</a>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- BOTTOM FLOATING NAV -->
-<div class="nav-wrapper">
-  <div class="nav-container" id="nav-container">
-    <div class="nav-knob" id="nav-knob"></div>
-    <div class="nav-item active" data-index="0">Notes</div>
-    <div class="nav-item" data-index="1">Assign</div>
-    <div class="nav-item" data-index="2">Lab Work</div>
-  </div>
-</div>
-
-<script>
-  /* ROBUST NAV LOGIC 
-    1. Drag Nav Knob -> Moves Content
-    2. Click Nav Item -> Jumps Content
-  */
-  
-  const navContainer = document.getElementById('nav-container');
-  const navKnob = document.getElementById('nav-knob');
-  const track = document.getElementById('track');
-  const viewport = document.getElementById('viewport');
-  const navItems = document.querySelectorAll('.nav-item');
-
-  let currentIndex = 0;
-  let isDragging = false;
-  let navWidth, knobWidth, maxTranslate;
-
-  // Initialize sizes
-  function initDimensions() {
-    navWidth = navContainer.clientWidth;
-    // Padding 5px left + 5px right = 10px total padding logic
-    knobWidth = (navWidth - 10) / 3; 
-    maxTranslate = navWidth - 10 - knobWidth;
-  }
-
-  // --- TOUCH / MOUSE EVENTS ---
-  navContainer.addEventListener('touchstart', dragStart, {passive: false});
-  navContainer.addEventListener('touchmove', dragMove, {passive: false});
-  navContainer.addEventListener('touchend', dragEnd);
-  
-  navContainer.addEventListener('mousedown', dragStart);
-  window.addEventListener('mousemove', dragMove);
-  window.addEventListener('mouseup', dragEnd);
-
-  function dragStart(e) {
-    if (e.target.closest('.nav-container')) {
-      isDragging = true;
-      initDimensions();
-      navKnob.style.transition = 'none';
-      track.style.transition = 'none';
-    }
-  }
-
-  function dragMove(e) {
-    if (!isDragging) return;
-    e.preventDefault(); 
-
-    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-    const navRect = navContainer.getBoundingClientRect();
-    
-    // Relative X inside the nav bar
-    // 5px is left padding offset
-    let offsetX = clientX - navRect.left - 5 - (knobWidth / 2);
-
-    // Clamp
-    if (offsetX < 0) offsetX = 0;
-    if (offsetX > maxTranslate) offsetX = maxTranslate;
-
-    // Move Knob
-    navKnob.style.transform = `translateX(${offsetX}px)`;
-
-    // Move Content (Map Nav% to Content%)
-    const percentage = offsetX / maxTranslate; 
-    
-    // We scroll 3 pages, so total scrollable width is 2 * ViewportWidth
-    const slideWidth = viewport.clientWidth;
-    const totalContentScroll = slideWidth * 2; 
-    
-    const contentTranslate = percentage * -totalContentScroll;
-    track.style.transform = `translateX(${contentTranslate}px)`;
-
-    highlightNavText(percentage);
-  }
-
-  function dragEnd(e) {
-    if (!isDragging) return;
-    isDragging = false;
-
-    // Snap logic
-    const currentKnobTransform = new WebKitCSSMatrix(window.getComputedStyle(navKnob).transform).m41;
-    const percentage = currentKnobTransform / maxTranslate;
-
-    if (percentage < 0.33) currentIndex = 0;
-    else if (percentage < 0.66) currentIndex = 1;
-    else currentIndex = 2;
-
-    snapToPosition();
-  }
-
-  // Click Support
-  navItems.forEach((item, index) => {
-    item.addEventListener('click', () => {
-      currentIndex = index;
-      snapToPosition();
-    });
-  });
-
-  function snapToPosition() {
-    initDimensions();
-    
-    // 1. Snap Knob
-    const preciseKnobX = ((navWidth - 10) / 3) * currentIndex;
-    navKnob.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-    navKnob.style.transform = `translateX(${preciseKnobX}px)`;
-
-    // 2. Snap Content
-    const slideWidth = viewport.clientWidth;
-    const contentX = currentIndex * -slideWidth;
-    track.style.transition = 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
-    track.style.transform = `translateX(${contentX}px)`;
-
-    // 3. Highlight
-    navItems.forEach((item, idx) => {
-      if (idx === currentIndex) {
-        item.classList.add('active');
-        item.style.color = '#fff';
-      } else {
-        item.classList.remove('active');
-        item.style.color = '#8e8e93';
-      }
-    });
-  }
-
-  function highlightNavText(pct) {
-    let activeIdx = 0;
-    if (pct > 0.33) activeIdx = 1;
-    if (pct > 0.66) activeIdx = 2;
-
-    navItems.forEach((item, idx) => {
-      if (idx === activeIdx) {
-        item.classList.add('active');
-        item.style.color = '#fff';
-      } else {
-        item.classList.remove('active');
-        item.style.color = '#8e8e93';
-      }
-    });
-  }
-
-  function toggleAccordion(card) {
-    const content = card.querySelector('.accordion-content');
-    if (content.style.maxHeight) {
-      content.style.maxHeight = null;
-      content.classList.remove('open');
-    } else {
-      content.style.maxHeight = content.scrollHeight + "px";
-      content.classList.add('open');
-    }
-  }
-
-  // Handle Resize
-  window.addEventListener('resize', () => {
-    initDimensions();
-    snapToPosition();
-  });
-  
-  // Initial Call
-  window.onload = function() {
-      initDimensions();
-      snapToPosition();
-  };
-</script>
-
-<script>
-  const _supabase = supabase.createClient('https://nsvkbxssnjjwhsrsxirs.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zdmtieHNzbmpqd2hzcnN4aXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY0MDA4NzksImV4cCI6MjA4MTk3Njg3OX0.S5GgEm49x6nJFmnOSsFI3Nte-mwNmVUbwTkxqa8h3yE');
-
-  const authOverlay = document.getElementById('auth-overlay');
-  const userDisplay = document.getElementById('user-display');
-  const signupFields = document.querySelectorAll('.signup-only');
-  let isLogin = true;
-
-  // TOGGLE LOGIN/SIGNUP
-  document.getElementById('auth-toggle').addEventListener('click', () => {
-    isLogin = !isLogin;
-    document.getElementById('auth-title').innerText = isLogin ? "Welcome Back" : "Create Account";
-    document.getElementById('auth-toggle').innerText = isLogin ? "Don't have an account? Sign Up" : "Already have an account? Log In";
-    signupFields.forEach(f => f.style.display = isLogin ? 'none' : 'block');
-  });
-
-  // HANDLE AUTH
-  document.getElementById('auth-submit').addEventListener('click', async () => {
-    const email = document.getElementById('identifier').value;
-    const password = document.getElementById('password').value;
-    const username = document.getElementById('username').value;
-
-    if (isLogin) {
-      await _supabase.auth.signInWithPassword({ email, password });
-    } else {
-      // Save username in 'display_name' metadata
-      await _supabase.auth.signUp({ 
-        email, 
-        password, 
-        options: { data: { display_name: username } } 
-      });
-      alert("Check email for confirmation (if enabled)");
-    }
-  });
-
-  // SESSION LISTENER
-  _supabase.auth.onAuthStateChange((event, session) => {
-    if (session) {
-      authOverlay.style.display = 'none';
-      // Retrieve username from metadata
-      const name = session.user.user_metadata.display_name || "Student";
-      userDisplay.innerText = `Welcome, ${name}!`;
-    } else {
-      authOverlay.style.display = 'flex';
-    }
-  });
-
-  async function handleLogout() {
-    await _supabase.auth.signOut();
-  }
-
-  function moveSlide(index) {
-    document.getElementById('track').style.transform = `translateX(-${index * 100}vw)`;
-    const items = document.querySelectorAll('.nav-item');
-    items.forEach((it, i) => it.classList.toggle('active', i === index));
-  }
-</script>
-</body>
-</html>
+**Troubleshooting Tips:**
+1.  **Check Spam:** Supabase emails often go to the "Junk" folder.
+2.  **Rate Limiting:** Supabase only allows a few emails per hour on the free tier. If you've been testing a lot, you might have to wait 15–30 minutes.
+3.  **Correct Template:** Double-check that you are editing the **"Confirm Signup"** template and not "Magic Link" or "Change Email."
+4.  **Try another Email:** Use a service like `temp-mail.org` or a different Gmail account to see if it's a specific email blocking the sender.
