@@ -875,12 +875,18 @@
         // Chat Functions
         async function initializeChat() {
             setView('chat');
-            await loadMessages();
 
-            // Setup realtime immediately (no delay)
+            try {
+                await loadMessages();
+            } catch (e) {
+                console.error('Error loading messages:', e);
+            }
+
+            // Setup realtime immediately (always run this)
             console.log('Initializing realtime features...');
             setupRealtimeSubscription();
             setupPresence();
+            console.log('Realtime setup complete');
         }
 
         async function loadMessages() {
