@@ -806,22 +806,41 @@
             setView('login');
         }
 
-        // Initialize Auth
-        _supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event, session ? 'has session' : 'no session');
+        // Initialize Auth - Check for existing session first
+        async function checkExistingSession() {
+            updateLoadingStatus('Checking session...');
+            const { data: { session }, error } = await _supabase.auth.getSession();
 
             if (session) {
+                console.log('Existing session found, going to chat');
                 currentUser = session.user;
                 updateLoadingStatus('Loading chat...');
                 await initializeChat();
                 updateUserUI();
                 setView('chat');
-            } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-                if (!session) {
-                    setView('login');
-                }
+            } else {
+                console.log('No session, showing login');
+                setView('login');
+            }
+        }
+
+        // Listen for auth changes (login, logout, token refresh)
+        _supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session ? 'has session' : 'no session');
+
+            if (event === 'SIGNED_IN' && session) {
+                currentUser = session.user;
+                updateLoadingStatus('Loading chat...');
+                await initializeChat();
+                updateUserUI();
+                setView('chat');
+            } else if (event === 'SIGNED_OUT') {
+                setView('login');
             }
         });
+
+        // Start the app
+        checkExistingSession();
 
         function updateUserUI() {
             const userName = currentUser.user_metadata?.full_name || 'User';
