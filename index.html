@@ -894,11 +894,19 @@
 
             try {
                 console.log('Fetching messages...');
-                const response = await _supabase
+
+                // Add timeout to prevent hanging
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Request timeout')), 5000)
+                );
+
+                const queryPromise = _supabase
                     .from('messages')
                     .select('*')
                     .order('created_at', { ascending: true })
                     .limit(100);
+
+                const response = await Promise.race([queryPromise, timeoutPromise]);
 
                 console.log('Messages response:', response);
                 const { data, error } = response;
