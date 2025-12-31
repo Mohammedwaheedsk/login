@@ -929,46 +929,55 @@
             console.log('Setting up realtime subscription...');
 
             messagesChannel = _supabase
-                .channel('messages-channel')
-                .on('postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'messages' },
-                    (payload) => {
-                        console.log('New message received:', payload);
-                        const newMessage = payload.new;
-                        // Check if message already exists (from optimistic UI)
-                        const existingIndex = messages.findIndex(m =>
-                            m.id === newMessage.id ||
-                            (m.id && m.id.toString().startsWith('temp-') && m.content === newMessage.content && m.user_id === newMessage.user_id)
-                        );
+                .channel('chat-room')
+                .on('broadcast', { event: 'new-message' }, (payload) => {
+                    console.log('Broadcast message received:', payload);
+                    const newMessage = payload.payload;
 
-                        if (existingIndex === -1) {
-                            // New message from another user
-                            messages.push(newMessage);
-                            appendMessage(newMessage);
-                            scrollToBottom();
-                        } else if (messages[existingIndex].id.toString().startsWith('temp-')) {
-                            // Replace temp message with real one
-                            messages[existingIndex] = newMessage;
-                            const tempEl = document.querySelector(`[data-message-id="${messages[existingIndex].id}"]`);
-                            if (tempEl) tempEl.dataset.messageId = newMessage.id;
-                        }
+                    // Don't add our own messages (already added via optimistic UI)
+                    if (newMessage.user_id === currentUser.id) return;
+
+                    // Check if message already exists
+                    if (!messages.find(m => m.id === newMessage.id)) {
+                        messages.push(newMessage);
+                        appendMessage(newMessage);
+                        scrollToBottom();
                     }
-                )
-                .on('postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'messages' },
-                    (payload) => {
-                        console.log('Message updated:', payload);
-                        const updatedMessage = payload.new;
-                        const index = messages.findIndex(m => m.id === updatedMessage.id);
-                        if (index !== -1) {
-                            messages[index] = updatedMessage;
-                            updateMessageReactions(updatedMessage);
-                        }
+                })
+                .on('broadcast', { event: 'message-update' }, (payload) => {
+                    console.log('Broadcast update received:', payload);
+                    const updatedMessage = payload.payload;
+                    const index = messages.findIndex(m => m.id === updatedMessage.id);
+                    if (index !== -1) {
+                        messages[index] = updatedMessage;
+                        updateMessageReactions(updatedMessage);
                     }
-                )
+                })
                 .subscribe((status) => {
-                    console.log('Messages channel status:', status);
+                    console.log('Chat room channel status:', status);
                 });
+        }
+
+        // Function to broadcast a message to all clients
+        function broadcastMessage(message) {
+            if (messagesChannel) {
+                messagesChannel.send({
+                    type: 'broadcast',
+                    event: 'new-message',
+                    payload: message
+                });
+            }
+        }
+
+        // Function to broadcast a message update
+        function broadcastUpdate(message) {
+            if (messagesChannel) {
+                messagesChannel.send({
+                    type: 'broadcast',
+                    event: 'message-update',
+                    payload: message
+                });
+            }
         }
 
         function setupPresence() {
@@ -1267,6 +1276,10 @@
                     if (tempIndex !== -1) messages[tempIndex] = realMessage;
                     const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
                     if (tempEl) tempEl.dataset.messageId = realMessage.id;
+
+                    // Broadcast to other clients
+                    broadcastMessage(realMessage);
+                    console.log('Message broadcasted:', realMessage);
                 }
             } catch (e) {
                 console.error('Exception sending message:', e);
@@ -1293,7 +1306,21 @@
                 if (reactions[emoji].length === 0) delete reactions[emoji];
             }
 
-            await _supabase.from('messages').update({ reactions }).eq('id', messageId);
+            // Update locally first
+            msg.reactions = reactions;
+            updateMessageReactions(msg);
+
+            // Save to database
+            const { data, error } = await _supabase
+                .from('messages')
+                .update({ reactions })
+                .eq('id', messageId)
+                .select();
+
+            // Broadcast update to other clients
+            if (data && data[0]) {
+                broadcastUpdate(data[0]);
+            }
         }
 
         // Context Menu
