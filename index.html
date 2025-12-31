@@ -830,10 +830,11 @@
 
         async function initializeChat() {
             updateLoadingStatus('Loading messages...');
+            // Show chat view FIRST so UI is visible immediately
+            setView('chat');
+
             try {
                 await loadMessages();
-                // Show chat view immediately - don't wait for realtime
-                setView('chat');
 
                 // Setup realtime features in background (non-blocking)
                 setTimeout(() => {
@@ -842,37 +843,49 @@
                 }, 100);
             } catch (e) {
                 console.error('Error initializing chat:', e);
-                updateLoadingStatus('Error loading chat');
-                setView('chat'); // Show chat view anyway
             }
         }
 
         async function loadMessages() {
+            const emptyState = document.getElementById('empty-state');
+
             try {
-                const { data, error } = await _supabase
+                console.log('Fetching messages...');
+                const response = await _supabase
                     .from('messages')
                     .select('*')
                     .order('created_at', { ascending: true })
                     .limit(100);
 
+                console.log('Messages response:', response);
+
+                const { data, error } = response;
+
                 if (error) {
                     console.error('Error loading messages:', error);
-                    // Show error in empty state
-                    const emptyState = document.getElementById('empty-state');
                     emptyState.innerHTML = `
                         <i data-lucide="alert-circle" size="48"></i>
-                        <h3>Database Setup Required</h3>
-                        <p style="max-width: 280px;">The messages table doesn't exist yet. Please create it in Supabase to enable chat.</p>
+                        <h3>Could not load messages</h3>
+                        <p style="max-width: 280px;">${error.message || 'Database error'}</p>
+                        <button onclick="loadMessages()" style="margin-top: 16px; padding: 10px 24px; background: #007aff; border-radius: 12px; font-weight: 600; font-size: 13px;">Retry</button>
                     `;
                     lucide.createIcons();
                     return;
                 }
 
                 messages = data || [];
+                console.log('Loaded', messages.length, 'messages');
                 renderMessages();
                 scrollToBottom();
             } catch (e) {
                 console.error('Exception loading messages:', e);
+                emptyState.innerHTML = `
+                    <i data-lucide="wifi-off" size="48"></i>
+                    <h3>Connection Issue</h3>
+                    <p style="max-width: 280px;">${e.message || 'Could not connect to the server.'}</p>
+                    <button onclick="loadMessages()" style="margin-top: 16px; padding: 10px 24px; background: #007aff; border-radius: 12px; font-weight: 600; font-size: 13px;">Retry</button>
+                `;
+                lucide.createIcons();
             }
         }
 
@@ -1132,19 +1145,71 @@
 
             const userName = currentUser.user_metadata?.full_name || 'Anonymous';
 
+            // Clear input immediately
             input.value = '';
             input.style.height = 'auto';
             document.getElementById('send-btn').disabled = true;
 
-            const { error } = await _supabase.from('messages').insert({
+            // Create optimistic message (show immediately)
+            const tempId = 'temp-' + Date.now();
+            const tempMessage = {
+                id: tempId,
                 user_id: currentUser.id,
                 user_name: userName,
                 content: content,
-                reactions: {}
-            });
+                reactions: {},
+                created_at: new Date().toISOString()
+            };
 
-            if (error) {
-                console.error('Error sending message:', error);
+            // Add to UI immediately
+            messages.push(tempMessage);
+            appendMessage(tempMessage);
+            scrollToBottom();
+
+            // Hide empty state
+            document.getElementById('empty-state').style.display = 'none';
+
+            console.log('Sending message:', content);
+
+            try {
+                const { data, error } = await _supabase.from('messages').insert({
+                    user_id: currentUser.id,
+                    user_name: userName,
+                    content: content,
+                    reactions: {}
+                }).select();
+
+                if (error) {
+                    console.error('Error sending message:', error);
+                    // Remove temp message on error
+                    messages = messages.filter(m => m.id !== tempId);
+                    const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
+                    if (tempEl) tempEl.remove();
+                    // Restore input
+                    input.value = content;
+                    document.getElementById('send-btn').disabled = false;
+                    alert('Failed to send: ' + (error.message || 'Unknown error'));
+                } else {
+                    console.log('Message sent successfully:', data);
+                    // Replace temp message with real one
+                    if (data && data[0]) {
+                        const realMessage = data[0];
+                        const tempIndex = messages.findIndex(m => m.id === tempId);
+                        if (tempIndex !== -1) {
+                            messages[tempIndex] = realMessage;
+                        }
+                        const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
+                        if (tempEl) {
+                            tempEl.dataset.messageId = realMessage.id;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Exception sending message:', e);
+                // Remove temp message on error
+                messages = messages.filter(m => m.id !== tempId);
+                const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
+                if (tempEl) tempEl.remove();
                 input.value = content;
                 document.getElementById('send-btn').disabled = false;
             }
@@ -1239,12 +1304,36 @@
         }
 
         function showOnlineUsers() {
+            console.log('Showing online users, count:', onlineUsers.size);
             const modal = document.getElementById('online-modal');
             const list = document.getElementById('online-users-list');
 
             list.innerHTML = '';
 
+            // Always show current user first
+            if (currentUser) {
+                const userName = currentUser.user_metadata?.full_name || 'You';
+                const userAvatar = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
+
+                const item = document.createElement('div');
+                item.className = 'flex items-center gap-3 p-3 rounded-xl liquid-glass mb-2';
+                item.innerHTML = `
+                    <img src="${userAvatar}" class="w-10 h-10 rounded-full object-cover bg-zinc-800">
+                    <div class="flex-1">
+                        <div class="font-semibold text-sm">${escapeHtml(userName)} (You)</div>
+                        <div class="text-xs text-green-400 flex items-center gap-1">
+                            <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                            Online
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            }
+
+            // Show other online users
             onlineUsers.forEach((user, id) => {
+                if (id === currentUser?.id) return; // Skip current user (already shown)
+
                 const item = document.createElement('div');
                 item.className = 'flex items-center gap-3 p-3 rounded-xl liquid-glass';
                 item.innerHTML = `
@@ -1259,10 +1348,6 @@
                 `;
                 list.appendChild(item);
             });
-
-            if (onlineUsers.size === 0) {
-                list.innerHTML = '<p class="text-center text-zinc-500 py-8">No users online</p>';
-            }
 
             modal.classList.remove('hidden');
         }
