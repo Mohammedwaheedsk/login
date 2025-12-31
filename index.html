@@ -574,7 +574,10 @@
 
     <!-- LOADING VIEW -->
     <div id="view-loading" class="view active items-center justify-center p-6 bg-black z-50">
-        <div class="spinner"></div>
+        <div class="flex flex-col items-center gap-4">
+            <div class="spinner"></div>
+            <p id="loading-status" class="text-sm text-zinc-500">Connecting...</p>
+        </div>
     </div>
 
     <!-- CHAT VIEW -->
@@ -724,20 +727,76 @@
             chat: document.getElementById('view-chat')
         };
 
-        // Session Recovery
+        // Session Recovery and Initialization
+        let authInitialized = false;
         const initialHash = window.location.hash;
-        if (initialHash && initialHash.includes('access_token')) {
-            const params = new URLSearchParams(initialHash.substring(1));
-            const access_token = params.get('access_token');
-            const refresh_token = params.get('refresh_token');
-            if (access_token && refresh_token) {
-                _supabase.auth.setSession({ access_token, refresh_token });
+
+        function updateLoadingStatus(message) {
+            const statusEl = document.getElementById('loading-status');
+            if (statusEl) statusEl.textContent = message;
+            console.log('Status:', message);
+        }
+
+        async function tryInitializeFromHash() {
+            if (initialHash && initialHash.includes('access_token')) {
+                updateLoadingStatus('Restoring session...');
+                const params = new URLSearchParams(initialHash.substring(1));
+                const access_token = params.get('access_token');
+                const refresh_token = params.get('refresh_token');
+                if (access_token && refresh_token) {
+                    try {
+                        await _supabase.auth.setSession({ access_token, refresh_token });
+                        updateLoadingStatus('Session restored!');
+                    } catch (e) {
+                        console.error('Error setting session from hash:', e);
+                        updateLoadingStatus('Session error, checking alternatives...');
+                    }
+                }
+            } else {
+                updateLoadingStatus('Checking existing session...');
+            }
+        }
+
+        async function checkExistingSession() {
+            updateLoadingStatus('Verifying authentication...');
+            try {
+                const { data: { session }, error } = await _supabase.auth.getSession();
+                console.log('Session check result:', session ? 'found' : 'not found', error);
+
+                if (session && !authInitialized) {
+                    authInitialized = true;
+                    currentUser = session.user;
+                    updateLoadingStatus('Loading chat...');
+
+                    // Clean URL
+                    if (window.location.hash && window.location.hash.includes('access_token')) {
+                        window.history.replaceState(null, '', window.location.pathname);
+                    }
+
+                    await initializeChat();
+                } else if (!session && !authInitialized) {
+                    // No session found, redirect to login
+                    updateLoadingStatus('No session, redirecting to login...');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                }
+            } catch (e) {
+                console.error('Error checking session:', e);
+                updateLoadingStatus('Error: ' + e.message);
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
             }
         }
 
         _supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
+            console.log('Auth state changed:', event, session ? 'has session' : 'no session');
+
+            if (session && !authInitialized) {
+                authInitialized = true;
                 currentUser = session.user;
+                updateLoadingStatus('Loading chat...');
 
                 // Clean URL
                 if (window.location.hash && window.location.hash.includes('access_token')) {
@@ -745,12 +804,24 @@
                 }
 
                 await initializeChat();
-                setView('chat');
-            } else {
-                if (initialHash && initialHash.includes('access_token')) return;
+            } else if (!session && event === 'SIGNED_OUT') {
                 window.location.href = 'index.html';
             }
         });
+
+        // Initialize
+        (async function init() {
+            updateLoadingStatus('Initializing...');
+            await tryInitializeFromHash();
+
+            // Fallback: Check session after a short delay if auth state hasn't fired
+            setTimeout(() => {
+                if (!authInitialized) {
+                    console.log('Auth state not fired, checking session manually...');
+                    checkExistingSession();
+                }
+            }, 1500);
+        })();
 
         function setView(target) {
             Object.values(views).forEach(v => v.classList.remove('active'));
@@ -758,26 +829,51 @@
         }
 
         async function initializeChat() {
-            await loadMessages();
-            setupRealtimeSubscription();
-            setupPresence();
+            updateLoadingStatus('Loading messages...');
+            try {
+                await loadMessages();
+                // Show chat view immediately - don't wait for realtime
+                setView('chat');
+
+                // Setup realtime features in background (non-blocking)
+                setTimeout(() => {
+                    setupRealtimeSubscription();
+                    setupPresence();
+                }, 100);
+            } catch (e) {
+                console.error('Error initializing chat:', e);
+                updateLoadingStatus('Error loading chat');
+                setView('chat'); // Show chat view anyway
+            }
         }
 
         async function loadMessages() {
-            const { data, error } = await _supabase
-                .from('messages')
-                .select('*')
-                .order('created_at', { ascending: true })
-                .limit(100);
+            try {
+                const { data, error } = await _supabase
+                    .from('messages')
+                    .select('*')
+                    .order('created_at', { ascending: true })
+                    .limit(100);
 
-            if (error) {
-                console.error('Error loading messages:', error);
-                return;
+                if (error) {
+                    console.error('Error loading messages:', error);
+                    // Show error in empty state
+                    const emptyState = document.getElementById('empty-state');
+                    emptyState.innerHTML = `
+                        <i data-lucide="alert-circle" size="48"></i>
+                        <h3>Database Setup Required</h3>
+                        <p style="max-width: 280px;">The messages table doesn't exist yet. Please create it in Supabase to enable chat.</p>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                messages = data || [];
+                renderMessages();
+                scrollToBottom();
+            } catch (e) {
+                console.error('Exception loading messages:', e);
             }
-
-            messages = data || [];
-            renderMessages();
-            scrollToBottom();
         }
 
         function setupRealtimeSubscription() {
