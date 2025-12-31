@@ -877,10 +877,10 @@
             setView('chat');
             await loadMessages();
 
-            setTimeout(() => {
-                setupRealtimeSubscription();
-                setupPresence();
-            }, 100);
+            // Setup realtime immediately (no delay)
+            console.log('Initializing realtime features...');
+            setupRealtimeSubscription();
+            setupPresence();
         }
 
         async function loadMessages() {
@@ -926,22 +926,38 @@
         }
 
         function setupRealtimeSubscription() {
+            console.log('Setting up realtime subscription...');
+
             messagesChannel = _supabase
-                .channel('public:messages')
+                .channel('messages-channel')
                 .on('postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'messages' },
                     (payload) => {
+                        console.log('New message received:', payload);
                         const newMessage = payload.new;
-                        if (!messages.find(m => m.id === newMessage.id)) {
+                        // Check if message already exists (from optimistic UI)
+                        const existingIndex = messages.findIndex(m =>
+                            m.id === newMessage.id ||
+                            (m.id && m.id.toString().startsWith('temp-') && m.content === newMessage.content && m.user_id === newMessage.user_id)
+                        );
+
+                        if (existingIndex === -1) {
+                            // New message from another user
                             messages.push(newMessage);
                             appendMessage(newMessage);
                             scrollToBottom();
+                        } else if (messages[existingIndex].id.toString().startsWith('temp-')) {
+                            // Replace temp message with real one
+                            messages[existingIndex] = newMessage;
+                            const tempEl = document.querySelector(`[data-message-id="${messages[existingIndex].id}"]`);
+                            if (tempEl) tempEl.dataset.messageId = newMessage.id;
                         }
                     }
                 )
                 .on('postgres_changes',
                     { event: 'UPDATE', schema: 'public', table: 'messages' },
                     (payload) => {
+                        console.log('Message updated:', payload);
                         const updatedMessage = payload.new;
                         const index = messages.findIndex(m => m.id === updatedMessage.id);
                         if (index !== -1) {
@@ -950,13 +966,16 @@
                         }
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    console.log('Messages channel status:', status);
+                });
         }
 
         function setupPresence() {
+            console.log('Setting up presence...');
             const userName = currentUser.user_metadata?.full_name || 'Anonymous';
             const userAvatar = currentUser.user_metadata?.avatar_url ||
-                `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=0a84ff&color=fff`;
 
             presenceChannel = _supabase.channel('online-users', {
                 config: { presence: { key: currentUser.id } }
@@ -965,6 +984,7 @@
             presenceChannel
                 .on('presence', { event: 'sync' }, () => {
                     const state = presenceChannel.presenceState();
+                    console.log('Presence sync:', state);
                     onlineUsers.clear();
 
                     for (const [userId, presence] of Object.entries(state)) {
@@ -975,30 +995,38 @@
                     updateOnlineCount();
                 })
                 .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                    console.log('User joined:', key, newPresences);
                     if (newPresences.length > 0) {
                         onlineUsers.set(key, newPresences[0]);
                         updateOnlineCount();
                     }
                 })
                 .on('presence', { event: 'leave' }, ({ key }) => {
+                    console.log('User left:', key);
                     onlineUsers.delete(key);
                     updateOnlineCount();
                 })
                 .subscribe(async (status) => {
+                    console.log('Presence channel status:', status);
                     if (status === 'SUBSCRIBED') {
+                        console.log('Tracking presence for user:', currentUser.id);
                         await presenceChannel.track({
                             user_id: currentUser.id,
                             user_name: userName,
                             user_avatar: userAvatar,
                             online_at: new Date().toISOString()
                         });
+                        // Update count to at least 1 (current user)
+                        updateOnlineCount();
                     }
                 });
         }
 
         function updateOnlineCount() {
-            const count = onlineUsers.size;
+            // Always show at least 1 if we're connected
+            const count = Math.max(onlineUsers.size, currentUser ? 1 : 0);
             document.getElementById('online-count').textContent = `${count} online`;
+            console.log('Online users count:', count, 'Map size:', onlineUsers.size);
         }
 
         function renderMessages() {
