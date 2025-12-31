@@ -227,13 +227,35 @@
 
         .message-wrapper.other {
             align-self: flex-start;
+            flex-direction: row;
+        }
+
+        .message-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            background: #1a1a1a;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
         }
 
         .message-sender {
             font-size: 11px;
             font-weight: 600;
             margin-bottom: 4px;
-            padding-left: 12px;
             opacity: 0.6;
         }
 
@@ -267,7 +289,6 @@
 
         .message-wrapper.other .message-time {
             text-align: left;
-            padding-left: 12px;
         }
 
         .message-wrapper.own .message-time {
@@ -636,7 +657,8 @@
             <!-- Chat Header -->
             <div class="chat-header">
                 <button class="user-avatar-btn liquid-glass" onclick="showProfileMenu()">
-                    <img id="header-avatar" src="" alt="Avatar">
+                    <img id="header-avatar" src="https://ui-avatars.com/api/?name=U&background=0a84ff&color=fff"
+                        alt="Avatar" style="background: #1a1a1a;">
                 </button>
                 <div class="flex-1">
                     <h1 class="text-lg font-bold">Community Chat</h1>
@@ -806,13 +828,52 @@
             setView('login');
         }
 
-        // Initialize Auth - Check for existing session first
+        // Initialize Auth - Check for session from URL hash or existing session
+        const initialHash = window.location.hash;
+
+        async function tryRecoverSessionFromHash() {
+            // Check if we have session tokens in URL (from app navigation)
+            if (initialHash && initialHash.includes('access_token')) {
+                updateLoadingStatus('Restoring session...');
+                const params = new URLSearchParams(initialHash.substring(1));
+                const access_token = params.get('access_token');
+                const refresh_token = params.get('refresh_token');
+
+                if (access_token && refresh_token) {
+                    try {
+                        const { data, error } = await _supabase.auth.setSession({
+                            access_token,
+                            refresh_token
+                        });
+
+                        if (data.session) {
+                            console.log('Session restored from URL hash');
+                            // Clean the URL
+                            window.history.replaceState(null, '', window.location.pathname);
+                            return data.session;
+                        }
+                    } catch (e) {
+                        console.error('Error setting session from hash:', e);
+                    }
+                }
+            }
+            return null;
+        }
+
         async function checkExistingSession() {
             updateLoadingStatus('Checking session...');
-            const { data: { session }, error } = await _supabase.auth.getSession();
+
+            // First try to recover session from URL hash (from app)
+            let session = await tryRecoverSessionFromHash();
+
+            // If no session from hash, check for existing stored session
+            if (!session) {
+                const { data, error } = await _supabase.auth.getSession();
+                session = data?.session;
+            }
 
             if (session) {
-                console.log('Existing session found, going to chat');
+                console.log('Session found, going to chat');
                 currentUser = session.user;
                 updateLoadingStatus('Loading chat...');
                 await initializeChat();
@@ -843,10 +904,14 @@
         checkExistingSession();
 
         function updateUserUI() {
+            if (!currentUser) return;
+
             const userName = currentUser.user_metadata?.full_name || 'User';
             const userEmail = currentUser.email || '';
             const userAvatar = currentUser.user_metadata?.avatar_url ||
-                `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=0a84ff&color=fff`;
+
+            console.log('Updating UI - Avatar URL:', userAvatar);
 
             document.getElementById('header-avatar').src = userAvatar;
             document.getElementById('profile-avatar').src = userAvatar;
@@ -1064,14 +1129,35 @@
                 reactionsHtml += '</div>';
             }
 
-            wrapper.innerHTML = `
-                ${!isOwn ? `<div class="message-sender">${msg.user_name || 'Anonymous'}</div>` : ''}
-                <div class="message-bubble" oncontextmenu="showContextMenu(event, '${msg.id}')" ontouchstart="handleTouchStart(event, '${msg.id}')" ontouchend="handleTouchEnd(event)">
-                    ${escapeHtml(msg.content)}
-                </div>
-                ${reactionsHtml}
-                <div class="message-time">${time}</div>
-            `;
+            // Get avatar URL - use stored avatar or generate from name
+            const avatarUrl = msg.user_avatar ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.user_name || 'U')}&background=0a84ff&color=fff&size=64`;
+
+            if (isOwn) {
+                // Own message - no avatar, right aligned
+                wrapper.innerHTML = `
+                    <div class="message-bubble" oncontextmenu="showContextMenu(event, '${msg.id}')" ontouchstart="handleTouchStart(event, '${msg.id}')" ontouchend="handleTouchEnd(event)">
+                        ${escapeHtml(msg.content)}
+                    </div>
+                    ${reactionsHtml}
+                    <div class="message-time">${time}</div>
+                `;
+            } else {
+                // Other's message - show avatar
+                wrapper.innerHTML = `
+                    <div class="message-row">
+                        <img src="${avatarUrl}" class="message-avatar" alt="">
+                        <div class="message-content">
+                            <div class="message-sender">${msg.user_name || 'Anonymous'}</div>
+                            <div class="message-bubble" oncontextmenu="showContextMenu(event, '${msg.id}')" ontouchstart="handleTouchStart(event, '${msg.id}')" ontouchend="handleTouchEnd(event)">
+                                ${escapeHtml(msg.content)}
+                            </div>
+                            ${reactionsHtml}
+                            <div class="message-time">${time}</div>
+                        </div>
+                    </div>
+                `;
+            }
 
             return wrapper;
         }
@@ -1161,6 +1247,8 @@
             if (!content) return;
 
             const userName = currentUser.user_metadata?.full_name || 'Anonymous';
+            const userAvatar = currentUser.user_metadata?.avatar_url ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=0a84ff&color=fff`;
 
             input.value = '';
             input.style.height = 'auto';
@@ -1172,6 +1260,7 @@
                 id: tempId,
                 user_id: currentUser.id,
                 user_name: userName,
+                user_avatar: userAvatar,
                 content: content,
                 reactions: {},
                 created_at: new Date().toISOString()
@@ -1186,6 +1275,7 @@
                 const { data, error } = await _supabase.from('messages').insert({
                     user_id: currentUser.id,
                     user_name: userName,
+                    user_avatar: userAvatar,
                     content: content,
                     reactions: {}
                 }).select();
