@@ -5,7 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <title>Chat - DailyDoseofBCA</title>
+    <title>Chatter - Community Chat</title>
+    <meta name="description" content="Real-time community chat for DailyDoseofBCA students">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -69,6 +74,67 @@
             display: flex;
         }
 
+        /* Login Styles */
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            padding: 40px 32px;
+            border-radius: 32px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
+        }
+
+        .google-btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: white;
+            color: #1a1a1a;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .google-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .google-btn:active {
+            transform: scale(0.98);
+        }
+
+        .google-btn img {
+            width: 20px;
+            height: 20px;
+        }
+
         /* Chat Container */
         .chat-container {
             display: flex;
@@ -92,19 +158,23 @@
             z-index: 20;
         }
 
-        .back-btn {
+        .user-avatar-btn {
             width: 40px;
             height: 40px;
             border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .back-btn:active {
+        .user-avatar-btn:active {
             transform: scale(0.92);
-            opacity: 0.8;
+        }
+
+        .user-avatar-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         /* Messages Area */
@@ -248,49 +318,6 @@
             opacity: 0.7;
         }
 
-        /* Reaction Picker */
-        .reaction-picker {
-            position: absolute;
-            bottom: 100%;
-            background: rgba(30, 30, 30, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 8px;
-            display: none;
-            gap: 4px;
-            z-index: 50;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .reaction-picker.show {
-            display: flex;
-        }
-
-        .reaction-picker button {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-        }
-
-        .reaction-picker button:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.1);
-        }
-
-        .reaction-picker button:active {
-            transform: scale(0.95);
-        }
-
         /* Input Area */
         .input-area {
             padding: 12px 16px 32px;
@@ -348,6 +375,9 @@
             justify-content: center;
             transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1);
             flex-shrink: 0;
+            border: none;
+            cursor: pointer;
+            color: white;
         }
 
         .send-btn:active {
@@ -357,58 +387,6 @@
         .send-btn:disabled {
             opacity: 0.4;
             transform: scale(0.95);
-        }
-
-        /* Typing Indicator */
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            opacity: 0.6;
-            font-size: 13px;
-        }
-
-        .typing-indicator.show {
-            display: flex;
-        }
-
-        .typing-dots {
-            display: flex;
-            gap: 4px;
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 50%;
-            animation: typingBounce 1.4s infinite ease-in-out;
-        }
-
-        .typing-dot:nth-child(1) {
-            animation-delay: 0s;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typingBounce {
-
-            0%,
-            60%,
-            100% {
-                transform: translateY(0);
-            }
-
-            30% {
-                transform: translateY(-4px);
-            }
         }
 
         /* Online Users Badge */
@@ -508,7 +486,7 @@
             opacity: 0.5;
         }
 
-        /* Context Menu for long press */
+        /* Context Menu */
         .context-menu {
             position: fixed;
             background: rgba(30, 30, 30, 0.95);
@@ -560,119 +538,6 @@
             background: rgba(255, 255, 255, 0.08);
         }
 
-        .context-menu button:active {
-            background: rgba(255, 255, 255, 0.12);
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Background Orbs -->
-    <div class="orb w-[250px] h-[250px] bg-blue-600 top-[-80px] right-[-50px]"></div>
-    <div class="orb w-[200px] h-[200px] bg-purple-600 bottom-[20%] left-[-60px]"></div>
-    <div class="orb w-[150px] h-[150px] bg-green-500 bottom-[-40px] right-[20%]"></div>
-
-    <!-- LOADING VIEW -->
-    <div id="view-loading" class="view active items-center justify-center p-6 bg-black z-50">
-        <div class="flex flex-col items-center gap-4">
-            <div class="spinner"></div>
-            <p id="loading-status" class="text-sm text-zinc-500">Connecting...</p>
-        </div>
-    </div>
-
-    <!-- CHAT VIEW -->
-    <div id="view-chat" class="view">
-        <div class="chat-container">
-            <!-- Chat Header -->
-            <div class="chat-header">
-                <button class="back-btn liquid-glass" onclick="goBack()">
-                    <i data-lucide="arrow-left" size="20"></i>
-                </button>
-                <div class="flex-1">
-                    <h1 class="text-lg font-bold">Community Chat</h1>
-                    <div class="online-badge mt-1">
-                        <div class="online-dot"></div>
-                        <span id="online-count">0 online</span>
-                    </div>
-                </div>
-                <button class="liquid-glass w-10 h-10 rounded-xl flex items-center justify-center"
-                    onclick="showOnlineUsers()">
-                    <i data-lucide="users" size="18"></i>
-                </button>
-            </div>
-
-            <!-- Messages Area -->
-            <div class="messages-area" id="messages-area">
-                <div class="empty-state" id="empty-state">
-                    <i data-lucide="message-circle" size="48"></i>
-                    <h3>Start the Conversation</h3>
-                    <p>Be the first to send a message!</p>
-                </div>
-            </div>
-
-            <!-- Typing Indicator -->
-            <div class="typing-indicator" id="typing-indicator">
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-                <span id="typing-users">Someone is typing...</span>
-            </div>
-
-            <!-- Input Area -->
-            <div class="input-area">
-                <div class="message-input-wrapper">
-                    <textarea class="message-input" id="message-input" placeholder="Message..." rows="1"
-                        oninput="handleInput(this)" onkeydown="handleKeyDown(event)"></textarea>
-                </div>
-                <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
-                    <i data-lucide="send" size="18"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Context Menu -->
-    <div class="context-menu" id="context-menu">
-        <button onclick="addReaction()">
-            <i data-lucide="smile" size="16"></i>
-            React
-        </button>
-        <button onclick="copyMessage()">
-            <i data-lucide="copy" size="16"></i>
-            Copy
-        </button>
-    </div>
-
-    <!-- Online Users Modal -->
-    <div id="online-modal"
-        class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-end justify-center"
-        onclick="hideOnlineUsers()">
-        <div class="w-full liquid-glass rounded-t-[32px] p-6" onclick="event.stopPropagation()"
-            style="animation: slideUp 0.3s cubic-bezier(0.2, 1, 0.3, 1);">
-            <div class="w-8 h-1 bg-white/10 rounded-full mx-auto mb-6"></div>
-            <h3 class="text-lg font-bold mb-4 text-center">Online Users</h3>
-            <div id="online-users-list" class="space-y-2 max-h-[50vh] overflow-y-auto">
-                <!-- Online users will be displayed here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Reaction Picker Modal -->
-    <div id="reaction-modal" class="hidden fixed inset-0 z-[90] bg-black/60 flex items-center justify-center"
-        onclick="hideReactionPicker()">
-        <div class="liquid-glass rounded-2xl p-3 flex gap-2" onclick="event.stopPropagation()">
-            <button class="reaction-emoji" onclick="selectReaction('👍')">👍</button>
-            <button class="reaction-emoji" onclick="selectReaction('❤️')">❤️</button>
-            <button class="reaction-emoji" onclick="selectReaction('😂')">😂</button>
-            <button class="reaction-emoji" onclick="selectReaction('😮')">😮</button>
-            <button class="reaction-emoji" onclick="selectReaction('😢')">😢</button>
-            <button class="reaction-emoji" onclick="selectReaction('🔥')">🔥</button>
-        </div>
-    </div>
-
-    <style>
         @keyframes slideUp {
             from {
                 transform: translateY(100%);
@@ -705,7 +570,174 @@
         .reaction-emoji:active {
             transform: scale(0.95);
         }
+
+        /* Profile menu styles */
+        .profile-menu-item {
+            width: 100%;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 14px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .profile-menu-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .profile-menu-item.danger {
+            color: #ff453a;
+        }
     </style>
+</head>
+
+<body>
+    <!-- Background Orbs -->
+    <div class="orb w-[250px] h-[250px] bg-blue-600 top-[-80px] right-[-50px]"></div>
+    <div class="orb w-[200px] h-[200px] bg-purple-600 bottom-[20%] left-[-60px]"></div>
+    <div class="orb w-[150px] h-[150px] bg-green-500 bottom-[-40px] right-[20%]"></div>
+
+    <!-- LOADING VIEW -->
+    <div id="view-loading" class="view active items-center justify-center p-6 bg-black z-50">
+        <div class="flex flex-col items-center gap-4">
+            <div class="spinner"></div>
+            <p id="loading-status" class="text-sm text-zinc-500">Connecting...</p>
+        </div>
+    </div>
+
+    <!-- LOGIN VIEW -->
+    <div id="view-login" class="view">
+        <div class="login-container">
+            <div class="login-card liquid-glass">
+                <div class="logo-icon">💬</div>
+                <h1 class="text-2xl font-bold mb-2">Chatter</h1>
+                <p class="text-zinc-400 text-sm mb-8">Real-time community chat</p>
+
+                <button class="google-btn" onclick="signInWithGoogle()">
+                    <img src="https://www.google.com/favicon.ico" alt="Google">
+                    Continue with Google
+                </button>
+
+                <p class="text-zinc-600 text-xs mt-6">By continuing, you agree to our Terms of Service</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div id="view-chat" class="view">
+        <div class="chat-container">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <button class="user-avatar-btn liquid-glass" onclick="showProfileMenu()">
+                    <img id="header-avatar" src="" alt="Avatar">
+                </button>
+                <div class="flex-1">
+                    <h1 class="text-lg font-bold">Community Chat</h1>
+                    <div class="online-badge mt-1">
+                        <div class="online-dot"></div>
+                        <span id="online-count">0 online</span>
+                    </div>
+                </div>
+                <button class="liquid-glass w-10 h-10 rounded-xl flex items-center justify-center"
+                    onclick="showOnlineUsers()">
+                    <i data-lucide="users" size="18"></i>
+                </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="messages-area" id="messages-area">
+                <div class="empty-state" id="empty-state">
+                    <i data-lucide="message-circle" size="48"></i>
+                    <h3>Start the Conversation</h3>
+                    <p>Be the first to send a message!</p>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="message-input-wrapper">
+                    <textarea class="message-input" id="message-input" placeholder="Message..." rows="1"
+                        oninput="handleInput(this)" onkeydown="handleKeyDown(event)"></textarea>
+                </div>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+                    <i data-lucide="send" size="18"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <button onclick="addReaction()">
+            <i data-lucide="smile" size="16"></i>
+            React
+        </button>
+        <button onclick="copyMessage()">
+            <i data-lucide="copy" size="16"></i>
+            Copy
+        </button>
+    </div>
+
+    <!-- Profile Menu Modal -->
+    <div id="profile-modal"
+        class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-end justify-center"
+        onclick="hideProfileMenu()">
+        <div class="w-full max-w-md liquid-glass rounded-t-[32px] p-6" onclick="event.stopPropagation()"
+            style="animation: slideUp 0.3s cubic-bezier(0.2, 1, 0.3, 1);">
+            <div class="w-8 h-1 bg-white/10 rounded-full mx-auto mb-6"></div>
+
+            <div class="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
+                <img id="profile-avatar" src="" class="w-14 h-14 rounded-2xl object-cover bg-zinc-800">
+                <div class="flex-1">
+                    <h3 id="profile-name" class="font-bold"></h3>
+                    <p id="profile-email" class="text-zinc-500 text-sm"></p>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <button class="profile-menu-item" onclick="showOnlineUsers(); hideProfileMenu();">
+                    <i data-lucide="users" size="18"></i>
+                    View Online Users
+                </button>
+                <button class="profile-menu-item danger" onclick="handleSignOut()">
+                    <i data-lucide="log-out" size="18"></i>
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Online Users Modal -->
+    <div id="online-modal"
+        class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex items-end justify-center"
+        onclick="hideOnlineUsers()">
+        <div class="w-full max-w-md liquid-glass rounded-t-[32px] p-6" onclick="event.stopPropagation()"
+            style="animation: slideUp 0.3s cubic-bezier(0.2, 1, 0.3, 1);">
+            <div class="w-8 h-1 bg-white/10 rounded-full mx-auto mb-6"></div>
+            <h3 class="text-lg font-bold mb-4 text-center">Online Users</h3>
+            <div id="online-users-list" class="space-y-2 max-h-[50vh] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- Reaction Picker Modal -->
+    <div id="reaction-modal" class="hidden fixed inset-0 z-[90] bg-black/60 flex items-center justify-center"
+        onclick="hideReactionPicker()">
+        <div class="liquid-glass rounded-2xl p-3 flex gap-2" onclick="event.stopPropagation()">
+            <button class="reaction-emoji" onclick="selectReaction('👍')">👍</button>
+            <button class="reaction-emoji" onclick="selectReaction('❤️')">❤️</button>
+            <button class="reaction-emoji" onclick="selectReaction('😂')">😂</button>
+            <button class="reaction-emoji" onclick="selectReaction('😮')">😮</button>
+            <button class="reaction-emoji" onclick="selectReaction('😢')">😢</button>
+            <button class="reaction-emoji" onclick="selectReaction('🔥')">🔥</button>
+        </div>
+    </div>
 
     <script>
         lucide.createIcons();
@@ -717,19 +749,15 @@
         let currentUser = null;
         let messages = [];
         let selectedMessageId = null;
-        let typingTimeout = null;
         let onlineUsers = new Map();
         let presenceChannel = null;
         let messagesChannel = null;
 
         const views = {
             loading: document.getElementById('view-loading'),
+            login: document.getElementById('view-login'),
             chat: document.getElementById('view-chat')
         };
-
-        // Session Recovery and Initialization
-        let authInitialized = false;
-        const initialHash = window.location.hash;
 
         function updateLoadingStatus(message) {
             const statusEl = document.getElementById('loading-status');
@@ -737,113 +765,93 @@
             console.log('Status:', message);
         }
 
-        async function tryInitializeFromHash() {
-            if (initialHash && initialHash.includes('access_token')) {
-                updateLoadingStatus('Restoring session...');
-                const params = new URLSearchParams(initialHash.substring(1));
-                const access_token = params.get('access_token');
-                const refresh_token = params.get('refresh_token');
-                if (access_token && refresh_token) {
-                    try {
-                        await _supabase.auth.setSession({ access_token, refresh_token });
-                        updateLoadingStatus('Session restored!');
-                    } catch (e) {
-                        console.error('Error setting session from hash:', e);
-                        updateLoadingStatus('Session error, checking alternatives...');
-                    }
-                }
-            } else {
-                updateLoadingStatus('Checking existing session...');
-            }
-        }
-
-        async function checkExistingSession() {
-            updateLoadingStatus('Verifying authentication...');
-            try {
-                const { data: { session }, error } = await _supabase.auth.getSession();
-                console.log('Session check result:', session ? 'found' : 'not found', error);
-
-                if (session && !authInitialized) {
-                    authInitialized = true;
-                    currentUser = session.user;
-                    updateLoadingStatus('Loading chat...');
-
-                    // Clean URL
-                    if (window.location.hash && window.location.hash.includes('access_token')) {
-                        window.history.replaceState(null, '', window.location.pathname);
-                    }
-
-                    await initializeChat();
-                } else if (!session && !authInitialized) {
-                    // No session found, redirect to login
-                    updateLoadingStatus('No session, redirecting to login...');
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1000);
-                }
-            } catch (e) {
-                console.error('Error checking session:', e);
-                updateLoadingStatus('Error: ' + e.message);
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
-            }
-        }
-
-        _supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event, session ? 'has session' : 'no session');
-
-            if (session && !authInitialized) {
-                authInitialized = true;
-                currentUser = session.user;
-                updateLoadingStatus('Loading chat...');
-
-                // Clean URL
-                if (window.location.hash && window.location.hash.includes('access_token')) {
-                    window.history.replaceState(null, '', window.location.pathname);
-                }
-
-                await initializeChat();
-            } else if (!session && event === 'SIGNED_OUT') {
-                window.location.href = 'index.html';
-            }
-        });
-
-        // Initialize
-        (async function init() {
-            updateLoadingStatus('Initializing...');
-            await tryInitializeFromHash();
-
-            // Fallback: Check session after a short delay if auth state hasn't fired
-            setTimeout(() => {
-                if (!authInitialized) {
-                    console.log('Auth state not fired, checking session manually...');
-                    checkExistingSession();
-                }
-            }, 1500);
-        })();
-
         function setView(target) {
             Object.values(views).forEach(v => v.classList.remove('active'));
             views[target].classList.add('active');
         }
 
-        async function initializeChat() {
-            updateLoadingStatus('Loading messages...');
-            // Show chat view FIRST so UI is visible immediately
-            setView('chat');
+        // Auth Functions
+        async function signInWithGoogle() {
+            updateLoadingStatus('Signing in...');
+            setView('loading');
 
-            try {
-                await loadMessages();
+            const { error } = await _supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin + window.location.pathname
+                }
+            });
 
-                // Setup realtime features in background (non-blocking)
-                setTimeout(() => {
-                    setupRealtimeSubscription();
-                    setupPresence();
-                }, 100);
-            } catch (e) {
-                console.error('Error initializing chat:', e);
+            if (error) {
+                console.error('Sign in error:', error);
+                setView('login');
+                alert('Sign in failed: ' + error.message);
             }
+        }
+
+        async function handleSignOut() {
+            hideProfileMenu();
+            updateLoadingStatus('Signing out...');
+            setView('loading');
+
+            if (presenceChannel) {
+                await presenceChannel.untrack();
+                presenceChannel.unsubscribe();
+            }
+            if (messagesChannel) {
+                messagesChannel.unsubscribe();
+            }
+
+            await _supabase.auth.signOut();
+            setView('login');
+        }
+
+        // Initialize Auth
+        _supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state changed:', event, session ? 'has session' : 'no session');
+
+            if (session) {
+                currentUser = session.user;
+                updateLoadingStatus('Loading chat...');
+                await initializeChat();
+                updateUserUI();
+                setView('chat');
+            } else if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
+                if (!session) {
+                    setView('login');
+                }
+            }
+        });
+
+        function updateUserUI() {
+            const userName = currentUser.user_metadata?.full_name || 'User';
+            const userEmail = currentUser.email || '';
+            const userAvatar = currentUser.user_metadata?.avatar_url ||
+                `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
+
+            document.getElementById('header-avatar').src = userAvatar;
+            document.getElementById('profile-avatar').src = userAvatar;
+            document.getElementById('profile-name').textContent = userName;
+            document.getElementById('profile-email').textContent = userEmail;
+        }
+
+        function showProfileMenu() {
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+
+        function hideProfileMenu() {
+            document.getElementById('profile-modal').classList.add('hidden');
+        }
+
+        // Chat Functions
+        async function initializeChat() {
+            setView('chat');
+            await loadMessages();
+
+            setTimeout(() => {
+                setupRealtimeSubscription();
+                setupPresence();
+            }, 100);
         }
 
         async function loadMessages() {
@@ -858,7 +866,6 @@
                     .limit(100);
 
                 console.log('Messages response:', response);
-
                 const { data, error } = response;
 
                 if (error) {
@@ -919,12 +926,11 @@
 
         function setupPresence() {
             const userName = currentUser.user_metadata?.full_name || 'Anonymous';
-            const userAvatar = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
+            const userAvatar = currentUser.user_metadata?.avatar_url ||
+                `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
 
             presenceChannel = _supabase.channel('online-users', {
-                config: {
-                    presence: { key: currentUser.id }
-                }
+                config: { presence: { key: currentUser.id } }
             });
 
             presenceChannel
@@ -937,7 +943,6 @@
                             onlineUsers.set(userId, presence[0]);
                         }
                     }
-
                     updateOnlineCount();
                 })
                 .on('presence', { event: 'join' }, ({ key, newPresences }) => {
@@ -980,15 +985,12 @@
             container.innerHTML = '';
 
             let lastDate = null;
-
             messages.forEach(msg => {
                 const msgDate = new Date(msg.created_at).toDateString();
-
                 if (msgDate !== lastDate) {
                     container.appendChild(createDateDivider(msg.created_at));
                     lastDate = msgDate;
                 }
-
                 container.appendChild(createMessageElement(msg));
             });
         }
@@ -1083,7 +1085,7 @@
             const wrapper = document.querySelector(`[data-message-id="${msg.id}"]`);
             if (!wrapper) return;
 
-            const reactionsContainer = wrapper.querySelector('.message-reactions');
+            let reactionsContainer = wrapper.querySelector('.message-reactions');
             const reactions = msg.reactions || {};
 
             let reactionsHtml = '';
@@ -1100,15 +1102,16 @@
             }
 
             if (reactionsContainer) {
-                reactionsContainer.innerHTML = reactionsHtml ? reactionsHtml.replace('<div class="message-reactions">', '').replace('</div>', '') : '';
-                if (!reactionsHtml) {
+                if (reactionsHtml) {
+                    reactionsContainer.innerHTML = reactionsHtml;
+                } else {
                     reactionsContainer.remove();
                 }
             } else if (reactionsHtml) {
                 const bubble = wrapper.querySelector('.message-bubble');
                 const newReactionsDiv = document.createElement('div');
                 newReactionsDiv.className = 'message-reactions';
-                newReactionsDiv.innerHTML = reactionsHtml.replace('<div class="message-reactions">', '').replace('</div>', '');
+                newReactionsDiv.innerHTML = reactionsHtml;
                 bubble.after(newReactionsDiv);
             }
         }
@@ -1121,13 +1124,9 @@
         }
 
         function handleInput(textarea) {
-            // Auto-resize
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-
-            // Enable/disable send button
-            const sendBtn = document.getElementById('send-btn');
-            sendBtn.disabled = !textarea.value.trim();
+            document.getElementById('send-btn').disabled = !textarea.value.trim();
         }
 
         function handleKeyDown(event) {
@@ -1140,17 +1139,15 @@
         async function sendMessage() {
             const input = document.getElementById('message-input');
             const content = input.value.trim();
-
             if (!content) return;
 
             const userName = currentUser.user_metadata?.full_name || 'Anonymous';
 
-            // Clear input immediately
             input.value = '';
             input.style.height = 'auto';
             document.getElementById('send-btn').disabled = true;
 
-            // Create optimistic message (show immediately)
+            // Optimistic UI
             const tempId = 'temp-' + Date.now();
             const tempMessage = {
                 id: tempId,
@@ -1161,15 +1158,10 @@
                 created_at: new Date().toISOString()
             };
 
-            // Add to UI immediately
             messages.push(tempMessage);
             appendMessage(tempMessage);
             scrollToBottom();
-
-            // Hide empty state
             document.getElementById('empty-state').style.display = 'none';
-
-            console.log('Sending message:', content);
 
             try {
                 const { data, error } = await _supabase.from('messages').insert({
@@ -1181,32 +1173,21 @@
 
                 if (error) {
                     console.error('Error sending message:', error);
-                    // Remove temp message on error
                     messages = messages.filter(m => m.id !== tempId);
                     const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
                     if (tempEl) tempEl.remove();
-                    // Restore input
                     input.value = content;
                     document.getElementById('send-btn').disabled = false;
                     alert('Failed to send: ' + (error.message || 'Unknown error'));
-                } else {
-                    console.log('Message sent successfully:', data);
-                    // Replace temp message with real one
-                    if (data && data[0]) {
-                        const realMessage = data[0];
-                        const tempIndex = messages.findIndex(m => m.id === tempId);
-                        if (tempIndex !== -1) {
-                            messages[tempIndex] = realMessage;
-                        }
-                        const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
-                        if (tempEl) {
-                            tempEl.dataset.messageId = realMessage.id;
-                        }
-                    }
+                } else if (data && data[0]) {
+                    const realMessage = data[0];
+                    const tempIndex = messages.findIndex(m => m.id === tempId);
+                    if (tempIndex !== -1) messages[tempIndex] = realMessage;
+                    const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
+                    if (tempEl) tempEl.dataset.messageId = realMessage.id;
                 }
             } catch (e) {
                 console.error('Exception sending message:', e);
-                // Remove temp message on error
                 messages = messages.filter(m => m.id !== tempId);
                 const tempEl = document.querySelector(`[data-message-id="${tempId}"]`);
                 if (tempEl) tempEl.remove();
@@ -1220,40 +1201,27 @@
             if (!msg) return;
 
             const reactions = { ...(msg.reactions || {}) };
-
-            if (!reactions[emoji]) {
-                reactions[emoji] = [];
-            }
+            if (!reactions[emoji]) reactions[emoji] = [];
 
             const userIndex = reactions[emoji].indexOf(currentUser.id);
-
             if (userIndex === -1) {
                 reactions[emoji].push(currentUser.id);
             } else {
                 reactions[emoji].splice(userIndex, 1);
-                if (reactions[emoji].length === 0) {
-                    delete reactions[emoji];
-                }
+                if (reactions[emoji].length === 0) delete reactions[emoji];
             }
 
-            await _supabase
-                .from('messages')
-                .update({ reactions })
-                .eq('id', messageId);
+            await _supabase.from('messages').update({ reactions }).eq('id', messageId);
         }
 
+        // Context Menu
         let touchTimer = null;
         function handleTouchStart(event, messageId) {
-            touchTimer = setTimeout(() => {
-                showContextMenu(event, messageId);
-            }, 500);
+            touchTimer = setTimeout(() => showContextMenu(event, messageId), 500);
         }
 
-        function handleTouchEnd(event) {
-            if (touchTimer) {
-                clearTimeout(touchTimer);
-                touchTimer = null;
-            }
+        function handleTouchEnd() {
+            if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
         }
 
         function showContextMenu(event, messageId) {
@@ -1288,18 +1256,14 @@
         }
 
         function selectReaction(emoji) {
-            if (selectedMessageId) {
-                toggleReaction(selectedMessageId, emoji);
-            }
+            if (selectedMessageId) toggleReaction(selectedMessageId, emoji);
             hideReactionPicker();
             selectedMessageId = null;
         }
 
         function copyMessage() {
             const msg = messages.find(m => m.id == selectedMessageId);
-            if (msg) {
-                navigator.clipboard.writeText(msg.content);
-            }
+            if (msg) navigator.clipboard.writeText(msg.content);
             hideContextMenu();
         }
 
@@ -1307,13 +1271,13 @@
             console.log('Showing online users, count:', onlineUsers.size);
             const modal = document.getElementById('online-modal');
             const list = document.getElementById('online-users-list');
-
             list.innerHTML = '';
 
-            // Always show current user first
+            // Show current user first
             if (currentUser) {
                 const userName = currentUser.user_metadata?.full_name || 'You';
-                const userAvatar = currentUser.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
+                const userAvatar = currentUser.user_metadata?.avatar_url ||
+                    `https://ui-avatars.com/api/?name=${userName}&background=0a84ff&color=fff`;
 
                 const item = document.createElement('div');
                 item.className = 'flex items-center gap-3 p-3 rounded-xl liquid-glass mb-2';
@@ -1330,10 +1294,8 @@
                 list.appendChild(item);
             }
 
-            // Show other online users
             onlineUsers.forEach((user, id) => {
-                if (id === currentUser?.id) return; // Skip current user (already shown)
-
+                if (id === currentUser?.id) return;
                 const item = document.createElement('div');
                 item.className = 'flex items-center gap-3 p-3 rounded-xl liquid-glass';
                 item.innerHTML = `
@@ -1362,30 +1324,9 @@
             return div.innerHTML;
         }
 
-        async function goBack() {
-            // Clean up subscriptions
-            if (presenceChannel) {
-                await presenceChannel.untrack();
-                presenceChannel.unsubscribe();
-            }
-            if (messagesChannel) {
-                messagesChannel.unsubscribe();
-            }
-
-            const { data: { session } } = await _supabase.auth.getSession();
-            if (session) {
-                const hash = `access_token=${session.access_token}&refresh_token=${session.refresh_token}`;
-                window.location.href = `sem4.html#${hash}`;
-            } else {
-                window.location.href = 'sem4.html';
-            }
-        }
-
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
-            if (presenceChannel) {
-                presenceChannel.untrack();
-            }
+            if (presenceChannel) presenceChannel.untrack();
         });
     </script>
 </body>
