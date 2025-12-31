@@ -104,37 +104,6 @@
             font-size: 36px;
         }
 
-        .google-btn {
-            width: 100%;
-            padding: 16px 24px;
-            background: white;
-            color: #1a1a1a;
-            border-radius: 16px;
-            font-weight: 600;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
-        }
-
-        .google-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
-        }
-
-        .google-btn:active {
-            transform: scale(0.98);
-        }
-
-        .google-btn img {
-            width: 20px;
-            height: 20px;
-        }
-
         /* Chat Container */
         .chat-container {
             display: flex;
@@ -633,20 +602,14 @@
         </div>
     </div>
 
-    <!-- LOGIN VIEW -->
+    <!-- NO ACCESS VIEW (for direct access without session) -->
     <div id="view-login" class="view">
         <div class="login-container">
             <div class="login-card liquid-glass">
-                <div class="logo-icon">💬</div>
-                <h1 class="text-2xl font-bold mb-2">Chatter</h1>
-                <p class="text-zinc-400 text-sm mb-8">Real-time community chat</p>
-
-                <button class="google-btn" onclick="signInWithGoogle()">
-                    <img src="https://www.google.com/favicon.ico" alt="Google">
-                    Continue with Google
-                </button>
-
-                <p class="text-zinc-600 text-xs mt-6">By continuing, you agree to our Terms of Service</p>
+                <div class="logo-icon">�</div>
+                <h1 class="text-2xl font-bold mb-2">Access Denied</h1>
+                <p class="text-zinc-400 text-sm mb-6">Please open the chat from the DailyDoseofBCA app to continue.</p>
+                <p class="text-zinc-600 text-xs">You need to be logged in to the app first.</p>
             </div>
         </div>
     </div>
@@ -792,25 +755,7 @@
             views[target].classList.add('active');
         }
 
-        // Auth Functions
-        async function signInWithGoogle() {
-            updateLoadingStatus('Signing in...');
-            setView('loading');
-
-            const { error } = await _supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin + window.location.pathname
-                }
-            });
-
-            if (error) {
-                console.error('Sign in error:', error);
-                setView('login');
-                alert('Sign in failed: ' + error.message);
-            }
-        }
-
+        // Auth Functions        // No sign-in function - users must come from the app with session tokens
         async function handleSignOut() {
             hideProfileMenu();
             updateLoadingStatus('Signing out...');
